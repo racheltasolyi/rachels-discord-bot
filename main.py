@@ -3,6 +3,9 @@ from discord.ext import commands, tasks
 import os
 import asyncio
 from itertools import cycle
+import logging
+
+#logging.basicConfig(level=logging.INFO)
 
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
@@ -42,18 +45,18 @@ async def sendembed(ctx):
 #     ping_embed.set_footer(text=f"Requested by {ctx.author.name}.", icon_url=ctx.author.avatar)
 #     await ctx.send(embed=ping_embed)
 
-async def Load():
+with open("token.txt") as file:
+    token = file.read()
+
+async def load():
     for filename in os.listdir("./cogs"):
         if filename.endswith(".py"):
             await bot.load_extension(f"cogs.{filename[:-3]}")
 
 async def main():
     async with bot:
-        await Load()
+        await load()
         await bot.start(token)
-
-with open("token.txt") as file:
-    token = file.read()
 
 asyncio.run(main())
 #bot.run(token)
