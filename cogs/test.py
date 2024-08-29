@@ -9,7 +9,7 @@ class Test(commands.Cog):
     async def on_ready(self):
         print(f"{__name__} is online!")
 
-    @commands.command()
+    @commands.command(aliases=["p"])
     async def ping(self, ctx):
         ping_embed = discord.Embed(title="Ping",description="Latency in ms", color=discord.Color.blue())
         ping_embed.add_field(name=f"{self.bot.user.name}'s Latency: ", value=f"{round(self.bot.latency * 1000)}ms.", inline=False)

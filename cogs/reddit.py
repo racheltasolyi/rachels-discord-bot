@@ -12,7 +12,7 @@ class Reddit(commands.Cog):
     async def on_ready(self):
         print(f"{__name__} is ready!")
     
-    @commands.command(aliases=["memes"])
+    @commands.command(aliases=["memes", "m"])
     async def meme(self, ctx: commands.Context):
 
         subreddit = await self.reddit.subreddit("memes")
@@ -38,7 +38,7 @@ class Reddit(commands.Cog):
         else:
             await ctx.send("Unable to fetch meme, try again later.")
     
-    @commands.command(aliases=["cats", "catpic", "catt"])
+    @commands.command(aliases=["cats", "catpic", "catt", "c"])
     async def cat(self, ctx: commands.Context):
 
         subreddit = await self.reddit.subreddit("cats")

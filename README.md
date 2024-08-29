@@ -4,11 +4,11 @@
 - **!goodmorning / !gm / !morning**: Bot says good morning back
 - **!sendembed**: Displays an embed
   - Currently just a formatting template
-- **!ping**: Displays user's current ping
-- **!meme / !memes**: Displays a random trending meme from Reddit
-- **!cat / !cats / !catpic / !catt**: Displays a random trending cat pic from Reddit
+- **!ping / !p**: Displays user's current ping
+- **!meme / !memes / !m**: Displays a random trending meme from Reddit
+- **!cat / !cats / !catpic / !catt / !c**: Displays a random trending cat pic from Reddit
 - On member join: Welcomes new member with a random idol's picture and member count
-- **!level**: Displays user's level statistics (current level, current XP, and total XP required to reach next level)
+- **!level / !l**: Displays user's level statistics (current level, current XP, and total XP required to reach next level)
   - Every message sent in the discord gives a random amount of XP ranging from 1-25, including this command
   - The level statistics displayed do not include the XP gained from sending this command
   - The amount of XP required to level up increases exponentially with each level

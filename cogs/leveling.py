@@ -52,7 +52,7 @@ class Leveling(commands.Cog):
         connection.commit()
         connection.close()
 
-    @commands.command()
+    @commands.command(aliases=["l"])
     async def level(self, ctx: commands.Context, member: discord.Member=None):
 
         if member is None:
