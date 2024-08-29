@@ -12,6 +12,7 @@
   - Every message sent in the discord gives a random amount of XP ranging from 1-25, including this command
   - The level statistics displayed do not include the XP gained from sending this command
   - The amount of XP required to level up increases exponentially with each level
+- **!inspire / !inspiration / !i / !quote**: Sends a random inspirational quote
 
 
 ## How to Setup (in VS Code)
