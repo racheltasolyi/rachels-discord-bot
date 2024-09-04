@@ -13,6 +13,8 @@
   - The level statistics displayed do not include the XP gained from sending this command
   - The amount of XP required to level up increases exponentially with each level
 - **!inspire / !inspiration / !i / !quote**: Sends a random inspirational quote
+- **!balance / !b**: Displays user's Wallet Balance and Bank Balance (creates new bank account if the user does not have one)
+- **!beg**: A random amount of coins ranging from 1-100 is added to user's Wallet
 
 
 ## How to Setup (in VS Code)
