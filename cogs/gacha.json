@@ -1,8 +1,20 @@
-[
-    {
-      "number": "1",
+{
+    "0": {
       "name": "Lee Know",
       "group": "Stray Kids",
-      "image": "welcome1.jpg"
+      "image": "welcome1.jpg",
+      "group_image": "skzlogo.jpg"
+    },
+    "1": {
+      "name": "Chungha",
+      "group": "Soloist",
+      "image": "welcome2.jpg",
+      "group_image": "morevision_logo.png"
+    },
+    "2": {
+      "name": "Soyeon",
+      "group": "(G)-IDLE",
+      "image": "welcome3.jpg",
+      "group_image": "gidle_logo.jpg"
     }
-  ]
+}

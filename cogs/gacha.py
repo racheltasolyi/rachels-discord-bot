@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import os
 import random
+import json
 
 class Gacha(commands.Cog):
     def __init__(self, bot):
@@ -23,17 +24,34 @@ class Gacha(commands.Cog):
         #images = [image for image in os.listdir("./cogs/welcome_images")]
         #randomized_image = random.choice(images)
 
-        welcome1 = discord.File("./cogs/welcome_images/welcome1.jpg", filename="welcome1.jpg")
-        skzlogo = discord.File("./cogs/welcome_images/skzlogo.jpg", filename="skzlogo.jpg")
+        pick = random.randrange(3)
+        cards = await self.get_card_data()
+        name = cards[str(pick)]["name"]
+        group = cards[str(pick)]["group"]
+        image = cards[str(pick)]["image"]
+        group_image = cards[str(pick)]["group_image"]
+        #print(name)
 
-        card = discord.Embed(title="Lee Know", description="Stray Kids", color=discord.Color.green())
+        welcome1 = discord.File(f"./cogs/welcome_images/{image}", filename=image)
+        skzlogo = discord.File(f"./cogs/welcome_images/{group_image}", filename=group_image)
+
+        card = discord.Embed(title=name, description=group, color=discord.Color.green())
         card.set_author(name=f"Rolled by {ctx.author.name}", icon_url=ctx.author.avatar)
-        card.set_thumbnail(url="attachment://skzlogo.jpg")
+        card.set_thumbnail(url=f"attachment://{group_image}")
         #card.add_field(name="Name of field", value="Value of field", inline=False)
-        card.set_image(url="attachment://welcome1.jpg")
+        card.set_image(url=f"attachment://{image}")
         #card.set_image(f"./cogs/welcome_images/{randomized_image}")
-        card.set_footer(text="Lee Know has not been caught yet!")
+        card.set_footer(text=f"{name} has not been caught yet!")
         await ctx.send(files=[welcome1, skzlogo], embed=card)
+    
+    async def get_card_data(self):
+        #print("Getting card data...")
+        with open("./cogs/gacha.json","r") as f:
+            #print("Reading JSON...")
+            cards = json.load(f)
+
+        #print("JSON read!")
+        return cards
 
 async def setup(bot):
     await bot.add_cog(Gacha(bot))
