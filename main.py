@@ -45,6 +45,11 @@ async def sendembed(ctx):
 #     ping_embed.set_footer(text=f"Requested by {ctx.author.name}.", icon_url=ctx.author.avatar)
 #     await ctx.send(embed=ping_embed)
 
+@bot.event
+async def on_reaction_add(ctx, reaction, user):
+    channel = reaction.message.channel
+    await ctx.send(channel, "{} has added {} to the message: {}".format(user.name, reaction.emoji, reaction.message.content))
+
 with open("token.txt") as file:
     token = file.read()
 

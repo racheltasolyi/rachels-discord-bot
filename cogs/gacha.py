@@ -24,26 +24,48 @@ class Gacha(commands.Cog):
         #images = [image for image in os.listdir("./cogs/welcome_images")]
         #randomized_image = random.choice(images)
 
-        pick = random.randrange(3)
+        roll = random.randrange(3)
         cards = await self.get_card_data()
-        name = cards[str(pick)]["name"]
-        group = cards[str(pick)]["group"]
-        image = cards[str(pick)]["image"]
-        group_image = cards[str(pick)]["group_image"]
-        #print(name)
+        roll_name = cards[str(roll)]["name"]
+        roll_group = cards[str(roll)]["group"]
+        roll_image = cards[str(roll)]["image"]
+        roll_logo = cards[str(roll)]["logo"]
+        roll_claimed = cards[str(roll)]["claimed"]
+        #print(roll_name)
 
-        welcome1 = discord.File(f"./cogs/welcome_images/{image}", filename=image)
-        skzlogo = discord.File(f"./cogs/welcome_images/{group_image}", filename=group_image)
+        uploaded_roll_image = discord.File(f"./cogs/gacha_images/{roll_image}", filename=roll_image)
+        uploaded_roll_logo = discord.File(f"./cogs/gacha_images/{roll_logo}", filename=roll_logo)
 
-        card = discord.Embed(title=name, description=group, color=discord.Color.green())
-        card.set_author(name=f"Rolled by {ctx.author.name}", icon_url=ctx.author.avatar)
-        card.set_thumbnail(url=f"attachment://{group_image}")
-        #card.add_field(name="Name of field", value="Value of field", inline=False)
-        card.set_image(url=f"attachment://{image}")
-        #card.set_image(f"./cogs/welcome_images/{randomized_image}")
-        card.set_footer(text=f"{name} has not been caught yet!")
-        await ctx.send(files=[welcome1, skzlogo], embed=card)
+        card = discord.Embed(title=roll_name, description=roll_group, color=discord.Color.green())
+        card.set_thumbnail(url=f"attachment://{roll_logo}")
+        card.set_image(url=f"attachment://{roll_image}")
+        card.set_footer(text=f"Rolled by {ctx.author.name}", icon_url=ctx.author.avatar)
+
+        if roll_claimed:
+            roll_owner_id = cards[str(roll)]["owner"]
+            roll_owner = await ctx.bot.fetch_user(roll_owner_id)
+            #print(roll_owner_id)
+            #print(roll_owner)
+            card.add_field(
+                name=f"{roll_name}'s heart already belongs to **{roll_owner}**!",
+                value=f"{roll_name} can no longer be claimed.",
+                inline=False
+            )
+        else:
+            card.add_field(
+                name=f"{roll_name} has not been caught yet 🥺",
+                value="React with any emoji to claim!",
+                inline=False
+            )
+        
+        await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card)
     
+    '''
+    @commands.Cog.listener()
+    async def on_reaction_add(self, reaction, user):
+        channel = reaction.message.channel
+        await client.send_message(channel, "{} has added {} to the message: {}")
+    '''
     async def get_card_data(self):
         #print("Getting card data...")
         with open("./cogs/gacha.json","r") as f:

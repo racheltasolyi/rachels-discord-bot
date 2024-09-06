@@ -2,19 +2,25 @@
     "0": {
       "name": "Lee Know",
       "group": "Stray Kids",
-      "image": "welcome1.jpg",
-      "group_image": "skzlogo.jpg"
+      "image": "leeknow.jpg",
+      "logo": "skzlogo.jpg",
+      "claimed": false,
+      "owner": null
     },
     "1": {
       "name": "Chungha",
-      "group": "Soloist",
-      "image": "welcome2.jpg",
-      "group_image": "morevision_logo.png"
+      "group": "soloist, I.O.I (prev)",
+      "image": "chungha.png",
+      "logo": "morevision_logo.png",
+      "claimed": false,
+      "owner": null
     },
     "2": {
       "name": "Soyeon",
       "group": "(G)-IDLE",
-      "image": "welcome3.jpg",
-      "group_image": "gidle_logo.jpg"
+      "image": "soyeon.jpg",
+      "logo": "gidle_logo.jpg",
+      "claimed": true,
+      "owner": 116654252381700105
     }
 }
