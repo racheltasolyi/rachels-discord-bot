@@ -48,7 +48,7 @@ class Gacha(commands.Cog):
             #print(roll_owner)
             card.add_field(
                 name=f"{roll_name}'s heart already belongs to **{roll_owner}**!",
-                value=f"{roll_name} can no longer be claimed.",
+                value=f"{roll_name} can no longer be caught.",
                 inline=False
             )
         else:

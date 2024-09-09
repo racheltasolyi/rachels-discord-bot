@@ -17,6 +17,7 @@ async def change_bot_status():
 
 @bot.event
 async def on_ready():
+    await bot.tree.sync() # [Paradoxical] Part 21: Buttons
     print("Bot ready!")
     change_bot_status.start()
 
@@ -38,17 +39,28 @@ async def sendembed(ctx):
     embeded_msg.set_footer(text="Footer text", icon_url=ctx.author.avatar)
     await ctx.send(embed=embeded_msg)
 
-# @bot.command()
-# async def ping(ctx):
-#     ping_embed = discord.Embed(title="Ping",description="Latency in ms", color=discord.Color.blue())
-#     ping_embed.add_field(name=f"{bot.user.name}'s Latency: ", value=f"{round(bot.latency * 1000)}ms.", inline=False)
-#     ping_embed.set_footer(text=f"Requested by {ctx.author.name}.", icon_url=ctx.author.avatar)
-#     await ctx.send(embed=ping_embed)
-
-@bot.event
-async def on_reaction_add(ctx, reaction, user):
-    channel = reaction.message.channel
-    await ctx.send(channel, "{} has added {} to the message: {}".format(user.name, reaction.emoji, reaction.message.content))
+# [Paradoxical] Part 21: Buttons (button menu as slash command)
+'''
+class TestMenuButton(discord.ui.View):
+    def __init__(self, timeout=10):
+        super().__init__(timeout=timeout)
+    
+    @discord.ui.button(label="Test", style=discord.ButtonStyle.blurple)
+    async def test(self, interaction: discord.Interaction, Button: discord.ui.Button):
+        await interaction.response.send_message(content="Test successful!")
+        #self.stop()
+    @discord.ui.button(label="Click Me...", style=discord.ButtonStyle.green)
+    async def test2(self, interaction: discord.Interaction, Button: discord.ui.Button):
+        await interaction.response.send_message(content="I've been clicked!")
+        #self.stop()
+    @discord.ui.button(label="Exit", style=discord.ButtonStyle.red)
+    async def test3(self, interaction: discord.Interaction, Button: discord.ui.Button):
+        await interaction.response.send_message(content="Exiting Menu...")
+        #self.stop()
+    
+@bot.tree.command(name="buttonmenu")
+async def buttonmenu(interaction: discord.Interaction):
+    await interaction.response.send_message(content="Here's my button menu!", view=TestMenuButton())'''
 
 with open("token.txt") as file:
     token = file.read()
