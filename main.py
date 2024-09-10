@@ -17,9 +17,26 @@ async def change_bot_status():
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync() # [Paradoxical] Part 21: Buttons
+    #await bot.tree.sync() # [Paradoxical] Part 21: Buttons
     print("Bot ready!")
     change_bot_status.start()
+    # try:
+    #     synced_commands = await bot.tree.sync()
+    #     print(f"Synced {len(synced_commands)} commands.")
+    # except Exception as e:
+    #     print("An error with syncing application commands has occurred: ", e)
+
+@bot.command(aliases=["s", "synccmd"])
+async def sync(ctx):
+    try:
+        synced_commands = await bot.tree.sync()
+        await ctx.send(f"Synced {len(synced_commands)} commands.")
+    except Exception as e:
+        await ctx.send("An error with syncing application commands has occurred: ", e)
+
+@bot.tree.command(name="hello", description="Says hello back to the user.")
+async def hello(interaction: discord.Interaction):
+    await interaction.response.send_message(f"{interaction.user.mention}, hello there!")
 
 @bot.command(aliases=["hi"])
 async def hello(ctx):
@@ -40,27 +57,24 @@ async def sendembed(ctx):
     await ctx.send(embed=embeded_msg)
 
 # [Paradoxical] Part 21: Buttons (button menu as slash command)
-'''
-class TestMenuButton(discord.ui.View):
-    def __init__(self, timeout=10):
-        super().__init__(timeout=timeout)
+
+# class TestMenuButton(discord.ui.View):
+#     def __init__(self):
+#         super().__init__(timeout=None)
     
-    @discord.ui.button(label="Test", style=discord.ButtonStyle.blurple)
-    async def test(self, interaction: discord.Interaction, Button: discord.ui.Button):
-        await interaction.response.send_message(content="Test successful!")
-        #self.stop()
-    @discord.ui.button(label="Click Me...", style=discord.ButtonStyle.green)
-    async def test2(self, interaction: discord.Interaction, Button: discord.ui.Button):
-        await interaction.response.send_message(content="I've been clicked!")
-        #self.stop()
-    @discord.ui.button(label="Exit", style=discord.ButtonStyle.red)
-    async def test3(self, interaction: discord.Interaction, Button: discord.ui.Button):
-        await interaction.response.send_message(content="Exiting Menu...")
-        #self.stop()
+#     @discord.ui.button(label="Test", style=discord.ButtonStyle.blurple)
+#     async def test(self, interaction: discord.Interaction, Button: discord.ui.Button):
+#         await interaction.response.send_message(content="Test successful!")
+#     @discord.ui.button(label="Click Me...", style=discord.ButtonStyle.green)
+#     async def test2(self, interaction: discord.Interaction, Button: discord.ui.Button):
+#         await interaction.response.send_message(content="I've been clicked!")
+#     @discord.ui.button(label="Exit", style=discord.ButtonStyle.red)
+#     async def test3(self, interaction: discord.Interaction, Button: discord.ui.Button):
+#         await interaction.response.send_message(content="Exiting Menu...")
     
-@bot.tree.command(name="buttonmenu")
-async def buttonmenu(interaction: discord.Interaction):
-    await interaction.response.send_message(content="Here's my button menu!", view=TestMenuButton())'''
+# @bot.tree.command(name="buttonmenu")
+# async def buttonmenu(interaction: discord.Interaction):
+#     await interaction.response.send_message(content="Here's my button menu!", view=TestMenuButton())
 
 with open("token.txt") as file:
     token = file.read()

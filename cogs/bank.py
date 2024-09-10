@@ -44,7 +44,7 @@ class Bank(commands.Cog):
 
         users[str(user.id)]["wallet"] += earnings
 
-        await ctx.send(f"Someone gave you {earnings} coins!! You now have {users[str(user.id)]["wallet"]} coins.")
+        await ctx.send(f"Someone gave you {earnings} coins!! You now have {users[str(user.id)]['wallet']} coins.")
 
         await self.update_bank_data(users)
     
@@ -62,7 +62,7 @@ class Bank(commands.Cog):
             users[str(user.id)]["bank"] = 0
             #print(f"{user.id}'s account was created.")
 
-        self.update_bank_data(users)
+        await self.update_bank_data(users)
         return True
     
     async def get_bank_data(self):
