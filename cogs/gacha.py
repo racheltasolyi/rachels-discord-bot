@@ -58,7 +58,7 @@ class Gacha(commands.Cog):
                 inline=False
             )
         
-        await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card)
+        await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=TestMenuButton())
     
     '''
     @commands.Cog.listener()
@@ -74,6 +74,21 @@ class Gacha(commands.Cog):
 
         #print("JSON read!")
         return cards
+    
+class TestMenuButton(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+    
+    @discord.ui.button(label="Test", style=discord.ButtonStyle.blurple)
+    async def test(self, interaction: discord.Interaction, Button: discord.ui.Button):
+        await interaction.response.send_message(content="Test successful!")
+        self.stop()
+    @discord.ui.button(label="Click Me...", style=discord.ButtonStyle.green)
+    async def test2(self, interaction: discord.Interaction, Button: discord.ui.Button):
+        await interaction.response.send_message(content="I've been clicked!")
+    @discord.ui.button(label="Exit", style=discord.ButtonStyle.red)
+    async def test3(self, interaction: discord.Interaction, Button: discord.ui.Button):
+        await interaction.response.send_message(content="Exiting Menu...")
 
 async def setup(bot):
     await bot.add_cog(Gacha(bot))

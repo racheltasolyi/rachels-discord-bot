@@ -54,7 +54,7 @@ class Leveling(commands.Cog):
         connection.close()
 
     @app_commands.command(name="level", description="Sends the level card for a given user.")
-    async def level(self, interaction: discord.Interaction, member: discord.Member=None):
+    async def slashlevel(self, interaction: discord.Interaction, member: discord.Member=None):
 
         if member is None:
             member = interaction.user

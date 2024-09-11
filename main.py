@@ -17,7 +17,7 @@ async def change_bot_status():
 
 @bot.event
 async def on_ready():
-    #await bot.tree.sync() # [Paradoxical] Part 21: Buttons
+    # await bot.tree.sync() # [Paradoxical] Part 21: Buttons
     print("Bot ready!")
     change_bot_status.start()
     # try:
@@ -28,6 +28,7 @@ async def on_ready():
 
 @bot.command(aliases=["s", "synccmd"])
 async def sync(ctx):
+    await bot.tree.sync()
     try:
         synced_commands = await bot.tree.sync()
         await ctx.send(f"Synced {len(synced_commands)} commands.")
