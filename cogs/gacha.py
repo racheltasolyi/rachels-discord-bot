@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-import os
 import random
 import json
 
@@ -11,13 +10,6 @@ class Gacha(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print(f"{__name__} is online!")
-
-    """@commands.command()
-    async def ping(self, ctx):
-        ping_embed = discord.Embed(title="Ping",description="Latency in ms", color=discord.Color.blue())
-        ping_embed.add_field(name=f"{self.bot.user.name}'s Latency: ", value=f"{round(self.bot.latency * 1000)}ms.", inline=False)
-        ping_embed.set_footer(text=f"Requested by {ctx.author.name}.", icon_url=ctx.author.avatar)
-        await ctx.send(embed=ping_embed)"""
 
     @commands.command(aliases=["g"])
     async def gacha(self, ctx):
@@ -132,13 +124,13 @@ class GachaButtonMenu(discord.ui.View):
         cards = await Gacha.get_card_data(self)
         #print(cards)
         #print(self.roll_number)
-        #print(f"before: {cards[str(self.roll_number)]["claimed"]}")
+        #print(f"before: {cards[str(self.roll_number)]['claimed']}")
         cards[str(self.roll_number)]["claimed"] = True
         cards[str(self.roll_number)]["owner"] = userid
-        #print(f"after: {cards[str(self.roll_number)]["claimed"]}")
+        #print(f"after: {cards[str(self.roll_number)]['claimed']}")
         #print(cards[str(self.roll_number)]["owner"])
         await Gacha.update_card_data(self, cards)
-        await interaction.response.send_message(content=f"{cards[str(self.roll_number)]["name"]} was caught by {interaction.user.name}!")
+        await interaction.response.send_message(content=f"{cards[str(self.roll_number)]['name']} was caught by {interaction.user.name}!")
 
 async def setup(bot):
     await bot.add_cog(Gacha(bot))

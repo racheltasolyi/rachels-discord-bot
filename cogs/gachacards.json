@@ -1,1 +1,26 @@
-{"0": {"name": "Lee Know", "group": "Stray Kids", "image": "leeknow.jpg", "logo": "skzlogo.jpg", "claimed": true, "owner": 116654252381700105}, "1": {"name": "Chungha", "group": "soloist, I.O.I (prev)", "image": "chungha.png", "logo": "morevision_logo.png", "claimed": true, "owner": 116654252381700105}, "2": {"name": "Soyeon", "group": "(G)-IDLE", "image": "soyeon.jpg", "logo": "gidle_logo.jpg", "claimed": false, "owner": null}}
+{
+  "0": {
+    "name": "Lee Know",
+    "group": "Stray Kids",
+    "image": "leeknow.jpg",
+    "logo": "skzlogo.jpg",
+    "claimed": false,
+    "owner": null
+  },
+  "1": {
+    "name": "Chungha",
+    "group": "soloist, I.O.I (prev)",
+    "image": "chungha.png",
+    "logo": "morevision_logo.png",
+    "claimed": true,
+    "owner": 116654252381700105
+  },
+  "2": {
+    "name": "Soyeon",
+    "group": "(G)-IDLE",
+    "image": "soyeon.jpg",
+    "logo": "gidle_logo.jpg",
+    "claimed": true,
+    "owner": 116654252381700105
+  }
+}
