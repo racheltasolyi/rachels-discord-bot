@@ -47,10 +47,19 @@ class Gacha(commands.Cog):
         else:
             card.add_field(
                 name=f"{roll_name} has not been caught yet 🥺",
-                value="Throw a Pokeball to catch!",
+                value="You have 1 minute to throw a Pokeball!",
                 inline=False
             )
             await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=GachaButtonMenu(roll_number))
+    
+    @commands.command()
+    async def resetgacha(self, ctx):
+        cards = await self.get_card_data()
+        for card in cards:
+            cards[str(card)]["claimed"] = False
+            cards[str(card)]["owner"] = None
+        await self.update_card_data(cards)
+        await ctx.send("Gacha has been reset.")
             
     '''
     @commands.Cog.listener()
@@ -114,7 +123,7 @@ class GachaButtonMenu(discord.ui.View):
     roll_number = None
 
     def __init__(self, roll_number):
-        super().__init__(timeout=None)
+        super().__init__(timeout=60)
         self.roll_number = roll_number
     
     @discord.ui.button(label="Throw Pokeball", style=discord.ButtonStyle.blurple)
@@ -125,12 +134,17 @@ class GachaButtonMenu(discord.ui.View):
         #print(cards)
         #print(self.roll_number)
         #print(f"before: {cards[str(self.roll_number)]['claimed']}")
-        cards[str(self.roll_number)]["claimed"] = True
-        cards[str(self.roll_number)]["owner"] = userid
+        if cards[str(self.roll_number)]["claimed"] is False:
+            cards[str(self.roll_number)]["claimed"] = True
+            cards[str(self.roll_number)]["owner"] = userid
+            await Gacha.update_card_data(self, cards)
+            content=f"{cards[str(self.roll_number)]['name']} was caught by {interaction.user.mention}!"
+        else:
+            content=f"Too bad, {cards[str(self.roll_number)]['name']} has already been caught!"
         #print(f"after: {cards[str(self.roll_number)]['claimed']}")
         #print(cards[str(self.roll_number)]["owner"])
-        await Gacha.update_card_data(self, cards)
-        await interaction.response.send_message(content=f"{cards[str(self.roll_number)]['name']} was caught by {interaction.user.name}!")
+        await interaction.response.send_message(content=content)
+        
 
 async def setup(bot):
     await bot.add_cog(Gacha(bot))

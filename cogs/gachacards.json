@@ -4,16 +4,16 @@
     "group": "Stray Kids",
     "image": "leeknow.jpg",
     "logo": "skzlogo.jpg",
-    "claimed": false,
-    "owner": null
+    "claimed": true,
+    "owner": 116654252381700105
   },
   "1": {
     "name": "Chungha",
     "group": "soloist, I.O.I (prev)",
     "image": "chungha.png",
     "logo": "morevision_logo.png",
-    "claimed": true,
-    "owner": 116654252381700105
+    "claimed": false,
+    "owner": null
   },
   "2": {
     "name": "Soyeon",

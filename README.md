@@ -18,6 +18,7 @@
 - **!gacha / !g**: Displays a random idol card that you can catch with a Pokeball
 - **/uselessbuttonmenu**: Displays a button menu that sends a message whenever a button is pressed
 - **!sync / !synccmd / !s**: Syncs and updates slash commands
+- **!resetgacha**: Releases all idols back into the wild
 
 
 ## How to Setup (in VS Code)
