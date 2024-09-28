@@ -123,7 +123,7 @@ class GachaButtonMenu(discord.ui.View):
     roll_number = None
 
     def __init__(self, roll_number):
-        super().__init__(timeout=60)
+        super().__init__(timeout=3)
         self.roll_number = roll_number
     
     @discord.ui.button(label="Throw Pokeball", style=discord.ButtonStyle.blurple)
