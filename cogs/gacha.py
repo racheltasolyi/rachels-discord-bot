@@ -68,6 +68,8 @@ class Gacha(commands.Cog):
         await client.send_message(channel, "{} has added {} to the message: {}")
     '''
     
+    #not needed? just filter thru gachacards table
+    '''
     async def create_new_player(self, player):
         #print("Do we need to open an account?")
         players = await self.get_player_data()
@@ -118,6 +120,7 @@ class Gacha(commands.Cog):
 
         #print("JSON updated!")
         return True
+    '''
     
 class GachaButtonMenu(discord.ui.View):
     roll_number = None
