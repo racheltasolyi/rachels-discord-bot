@@ -25,8 +25,8 @@ class Gacha(commands.Cog):
         roll_claimed = cards[str(roll_number)]["claimed"]
         #print(roll_name)
 
-        uploaded_roll_image = discord.File(f"./cogs/gacha_images/{roll_image}", filename=roll_image)
-        uploaded_roll_logo = discord.File(f"./cogs/gacha_images/{roll_logo}", filename=roll_logo)
+        uploaded_roll_image = discord.File(f"./cogs/gacha_images/idols/{roll_image}", filename=roll_image)
+        uploaded_roll_logo = discord.File(f"./cogs/gacha_images/logos/{roll_logo}", filename=roll_logo)
 
         card = discord.Embed(title=roll_name, description=roll_group, color=discord.Color.green())
         card.set_thumbnail(url=f"attachment://{roll_logo}")
