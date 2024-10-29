@@ -15,9 +15,12 @@ class Gacha(commands.Cog):
     async def gacha(self, ctx):
         #images = [image for image in os.listdir("./cogs/welcome_images")]
         #randomized_image = random.choice(images)
+        #print("!gacha command called!")
 
         roll_number = random.randrange(3)
+        #print(roll_number)
         cards = await self.get_card_data()
+        #print("Got card data!")
         roll_name = cards[str(roll_number)]["name"]
         roll_group = cards[str(roll_number)]["group"]
         roll_image = cards[str(roll_number)]["image"]
@@ -25,13 +28,15 @@ class Gacha(commands.Cog):
         roll_claimed = cards[str(roll_number)]["claimed"]
         #print(roll_name)
 
-        uploaded_roll_image = discord.File(f"./cogs/gacha_images/{roll_image}", filename=roll_image)
-        uploaded_roll_logo = discord.File(f"./cogs/gacha_images/{roll_logo}", filename=roll_logo)
+        uploaded_roll_image = discord.File(f"./cogs/gacha_images/idols/{roll_image}", filename=roll_image)
+        uploaded_roll_logo = discord.File(f"./cogs/gacha_images/logos/{roll_logo}", filename=roll_logo)
+        #print("Images uploaded!")
 
         card = discord.Embed(title=roll_name, description=roll_group, color=discord.Color.green())
         card.set_thumbnail(url=f"attachment://{roll_logo}")
         card.set_image(url=f"attachment://{roll_image}")
         card.set_footer(text=f"Rolled by {ctx.author.name}", icon_url=ctx.author.avatar)
+        #print("Embed created!")
 
         if roll_claimed:
             roll_owner_id = cards[str(roll_number)]["owner"]
@@ -103,7 +108,7 @@ class Gacha(commands.Cog):
 
         #print("JSON updated!")
         return True
-    
+    '''
     async def get_card_data(self):
         #print("Getting card data...")
         with open("./cogs/gachacards.json","r") as f:
@@ -120,7 +125,6 @@ class Gacha(commands.Cog):
 
         #print("JSON updated!")
         return True
-    '''
     
 class GachaButtonMenu(discord.ui.View):
     roll_number = None
