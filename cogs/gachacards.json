@@ -4,8 +4,8 @@
     "group": "Stray Kids",
     "image": "skzleeknow.jpg",
     "logo": "skz_logo.jpg",
-    "claimed": false,
-    "owner": null
+    "claimed": true,
+    "owner": 116654252381700105
   },
   "1": {
     "name": "Chungha",
