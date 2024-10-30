@@ -20,7 +20,7 @@ class Gacha(commands.Cog):
         roller_id = ctx.author.id
         #print(roller_id)
 
-        roll_number = random.randrange(2)
+        roll_number = random.randrange(30)
         #print(roll_number)
         #cards = await self.get_card_data()
         connection = sqlite3.connect("./cogs/idol_gacha.db")
@@ -103,12 +103,19 @@ class Gacha(commands.Cog):
     
     @commands.command()
     async def resetgacha(self, ctx):
-        cards = await self.get_card_data()
+        '''cards = await self.get_card_data()
         for card in cards:
             cards[str(card)]["claimed"] = False
             cards[str(card)]["owner"] = None
-        await self.update_card_data(cards)
+        await self.update_card_data(cards)'''
+
+        connection = sqlite3.connect("./cogs/idol_gacha.db")
+        cursor = connection.cursor()
+        cursor.execute("UPDATE Idols SET player_id = 0 WHERE (player_id IS NOT NULL AND player_id != 0)")
+
         await ctx.send("Gacha has been reset.")
+        connection.commit()
+        connection.close()
             
     '''
     @commands.Cog.listener()
@@ -205,7 +212,7 @@ class GachaButtonMenu(discord.ui.View):
             cursor.execute("UPDATE Idols SET player_id = :userid WHERE idol_id = :roll_number",
                        {'userid': userid, 'roll_number': self.roll_number})
             content=f"{roll_name} was caught by {interaction.user.mention}!"
-            print(roll)
+            #print(roll)
         else:
             content=f"Too bad, {roll_name} has already been caught!"
         
