@@ -52,3 +52,4 @@
    - Any files that should be ignored need to be added to the .gitignore file
 3. `git commit m ""` and write commit message inside quotations
 4. `git push` to push commit to GitHub
+   - If working on a new branch, use `git push origin [new-branch-name]`
