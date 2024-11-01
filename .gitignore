@@ -3,3 +3,6 @@ __pycache__/
 
 #bot token
 token.txt
+
+#admin id
+admin.txt

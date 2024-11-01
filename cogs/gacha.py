@@ -108,14 +108,24 @@ class Gacha(commands.Cog):
             cards[str(card)]["claimed"] = False
             cards[str(card)]["owner"] = None
         await self.update_card_data(cards)'''
+        with open("./admin.txt") as file:
+            adminid = int(file.read())
+            #print("adminid =", repr(adminid), type(adminid))
+            #print("ctx.author.id =", repr(ctx.author.id), type(ctx.author.id))
+            #print(ctx.author.id == adminid)
 
-        connection = sqlite3.connect("./cogs/idol_gacha.db")
-        cursor = connection.cursor()
-        cursor.execute("UPDATE Idols SET player_id = 0 WHERE (player_id IS NOT NULL AND player_id != 0)")
+        if (ctx.author.id == adminid):
 
-        await ctx.send("Gacha has been reset.")
-        connection.commit()
-        connection.close()
+            connection = sqlite3.connect("./cogs/idol_gacha.db")
+            cursor = connection.cursor()
+            cursor.execute("UPDATE Idols SET player_id = 0 WHERE (player_id IS NOT NULL AND player_id != 0)")
+
+            await ctx.send("Gacha has been reset.")
+            connection.commit()
+            connection.close()
+        
+        else:
+            await ctx.send("You do not have permission for this command.")
             
     '''
     @commands.Cog.listener()

@@ -18,7 +18,7 @@
 - **!gacha | !g**: Displays a random idol card that you can catch with a Pokeball
 - **/uselessbuttonmenu**: Displays a button menu that sends a message whenever a button is pressed
 - **!sync / !synccmd / !s**: Syncs and updates slash commands
-- **!resetgacha**: Releases all idols back into the wild
+- **!resetgacha**: Admin only. Releases all idols back into the wild
 
 
 ## How to Setup (in VS Code)
@@ -30,8 +30,9 @@
 5. Choose the folder the save the repo in
 6. Click "Open" and "Yes, I trust the authors" if necessary
 7. Make sure Bot's token is saved in the repo's folder in a file called "token.txt"
-8. Install Python if necessary
-9. Install Prettier if necessary (might already be in node_modules, need to check)
+8. Make sure Admin's User ID is saved in the repo's folder in a file called "admin.txt"
+9. Install Python if necessary
+10. Install Prettier if necessary (might already be in node_modules, need to check)
    - Open "Extensions" tab on the sidebar (symbol that looks like tetris squares)
    - Find and install "Prettier - Code formatter"
    - `CTRL`+`,` to open Settings on Windows or Linux
@@ -51,3 +52,4 @@
    - Any files that should be ignored need to be added to the .gitignore file
 3. `git commit m ""` and write commit message inside quotations
 4. `git push` to push commit to GitHub
+   - If working on a new branch, use `git push origin [new-branch-name]`
