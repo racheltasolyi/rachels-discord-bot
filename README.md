@@ -1,4 +1,10 @@
-## Commands/Features (in order they were added)
+## Idol Gacha Commands
+- **!gacha | !g**: Rolls a random idol card that you can catch with a Pokeball
+  - **!gacha [x] | !g [x]**: Admin only. Rolls the idol whose Idol ID matches [x]
+- **!resetgacha**: Admin only. Releases all caught idols back into the wild
+
+
+## Other Commands/Features (in order they were added)
 
 - **!hello | !hi | /hello**: Bot says hello back
 - **!goodmorning | !gm | !morning**: Bot says good morning back
@@ -15,10 +21,8 @@
 - **!inspire | !inspiration | !i | !quote**: Sends a random inspirational quote
 - **!balance | !b**: Displays user's Wallet Balance and Bank Balance (creates new bank account if the user does not have one)
 - **!beg**: A random amount of coins ranging from 1-100 is added to user's Wallet
-- **!gacha | !g**: Displays a random idol card that you can catch with a Pokeball
 - **/uselessbuttonmenu**: Displays a button menu that sends a message whenever a button is pressed
 - **!sync / !synccmd / !s**: Syncs and updates slash commands
-- **!resetgacha**: Admin only. Releases all idols back into the wild
 
 
 ## How to Setup (in VS Code)

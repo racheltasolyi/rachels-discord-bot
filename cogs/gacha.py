@@ -13,50 +13,68 @@ class Gacha(commands.Cog):
         print(f"{__name__} is online!")
 
     @commands.command(aliases=["g"])
-    async def gacha(self, ctx):
+    async def gacha(self, ctx, arg: int = None):
         #images = [image for image in os.listdir("./cogs/welcome_images")]
         #randomized_image = random.choice(images)
         #print("!gacha command called!")
         roller_id = ctx.author.id
         #print(roller_id)
 
-        roll_number = random.randrange(30)
-        #print(roll_number)
+        if (arg != None):
+            with open("./admin.txt") as file:
+                adminid = int(file.read())
+
+            if (roller_id == adminid):
+                roll_number = arg
+            else:
+                await ctx.send("You do not have permission for this command.")
+                return
+
+        else:
+            #roll_number = 29
+            roll_number = random.randrange(30)
+            
+        print(roll_number)
         #cards = await self.get_card_data()
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
         #print("connection made")
 
         cursor.execute("""SELECT * FROM Players
-                       WHERE player_id = :roller_id""",
-                       {'roller_id': roller_id})
+                    WHERE player_id = :roller_id""",
+                    {'roller_id': roller_id})
         player = cursor.fetchone()
         #print(player)
         if player is None:
             cursor.execute("""INSERT INTO Players (player_id)
-                           Values (:roller_id)""",
-                           {'roller_id': roller_id})
+                        Values (:roller_id)""",
+                        {'roller_id': roller_id})
 
         cursor.execute("""SELECT * FROM Idols
-                       WHERE idol_id = :roll_number""",
-                       {'roll_number': roll_number})
+                    WHERE idol_id = :roll_number""",
+                    {'roll_number': roll_number})
         roll = cursor.fetchone()
-        '''if roll is not None:
-            print(roll)
-        else:
-            print("No matching entry found.")'''
+        if roll is None:
+            await ctx.send("The rolled idol does not exist.")
+            return
 
         cursor.execute("""SELECT group_id FROM GroupMembers
-                       WHERE idol_id = :roll_number""",
-                       {'roll_number': roll_number})
+                    WHERE idol_id = :roll_number""",
+                    {'roll_number': roll_number})
         roll_group_id = cursor.fetchone()
         #print(roll_group_id)
+        if roll_group_id is None:
+            await ctx.send("The rolled idol's Group ID does not exist.")
+            return
 
         cursor.execute("""SELECT * FROM Groups
-                       WHERE group_id = :roll_group_id""",
-                       {'roll_group_id': roll_group_id[0]})
+                    WHERE group_id = :roll_group_id""",
+                    {'roll_group_id': roll_group_id[0]})
         roll_group = cursor.fetchone()
         #print(roll_group)
+        if roll_group is None:
+            await ctx.send("The rolled idol's Group does not exist.")
+            return
 
         #print("Got card data!")
         roll_name = roll[1]
@@ -70,11 +88,13 @@ class Gacha(commands.Cog):
         #print(roll_name)
 
         uploaded_roll_image = discord.File(f"./cogs/gacha_images/idols/{roll_image}", filename=roll_image)
-        uploaded_roll_logo = discord.File(f"./cogs/gacha_images/logos/{roll_logo}", filename=roll_logo)
+        if roll_logo is not None:
+            uploaded_roll_logo = discord.File(f"./cogs/gacha_images/logos/{roll_logo}", filename=roll_logo)
         #print("Images uploaded!")
 
         card = discord.Embed(title=roll_name, description=roll_group_name, color=discord.Color.green())
-        card.set_thumbnail(url=f"attachment://{roll_logo}")
+        if roll_logo is not None:
+            card.set_thumbnail(url=f"attachment://{roll_logo}")
         card.set_image(url=f"attachment://{roll_image}")
         card.set_footer(text=f"Rolled by {ctx.author.name}", icon_url=ctx.author.avatar)
         #print("Embed created!")
@@ -89,7 +109,10 @@ class Gacha(commands.Cog):
                 value=f"{roll_name} can no longer be caught.",
                 inline=False
             )
-            await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card)
+            if roll_logo is None:
+                await ctx.send(files=[uploaded_roll_image], embed=card)
+            else:
+                await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card)
         else:
             card.add_field(
                 name=f"{roll_name} has not been caught yet 🥺",
@@ -97,7 +120,10 @@ class Gacha(commands.Cog):
                 inline=False
             )
             #await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card)
-            await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=GachaButtonMenu(roll_number))
+            if roll_logo is None:
+                await ctx.send(files=[uploaded_roll_image], embed=card, view=GachaButtonMenu(roll_number))
+            else:
+                await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=GachaButtonMenu(roll_number))
         connection.commit()
         connection.close()
     
