@@ -41,26 +41,26 @@ class Gacha(commands.Cog):
         #print("connection made")
 
         cursor.execute("""SELECT * FROM Players
-                    WHERE player_id = :roller_id""",
-                    {'roller_id': roller_id})
+                          WHERE player_id = :roller_id""",
+                        {'roller_id': roller_id})
         player = cursor.fetchone()
         #print(player)
         if player is None:
             cursor.execute("""INSERT INTO Players (player_id)
-                        Values (:roller_id)""",
-                        {'roller_id': roller_id})
+                              Values (:roller_id)""",
+                            {'roller_id': roller_id})
 
         cursor.execute("""SELECT * FROM Idols
-                    WHERE idol_id = :roll_number""",
-                    {'roll_number': roll_number})
+                          WHERE idol_id = :roll_number""",
+                        {'roll_number': roll_number})
         roll = cursor.fetchone()
         if roll is None:
             await ctx.send("The rolled idol does not exist.")
             return
 
         cursor.execute("""SELECT group_id FROM GroupMembers
-                    WHERE idol_id = :roll_number""",
-                    {'roll_number': roll_number})
+                          WHERE idol_id = :roll_number""",
+                        {'roll_number': roll_number})
         roll_group_id = cursor.fetchone()
         #print(roll_group_id)
         if roll_group_id is None:
@@ -68,8 +68,8 @@ class Gacha(commands.Cog):
             return
 
         cursor.execute("""SELECT * FROM Groups
-                    WHERE group_id = :roll_group_id""",
-                    {'roll_group_id': roll_group_id[0]})
+                          WHERE group_id = :roll_group_id""",
+                        {'roll_group_id': roll_group_id[0]})
         roll_group = cursor.fetchone()
         #print(roll_group)
         if roll_group is None:
@@ -124,6 +124,12 @@ class Gacha(commands.Cog):
                 await ctx.send(files=[uploaded_roll_image], embed=card, view=GachaButtonMenu(roll_number))
             else:
                 await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=GachaButtonMenu(roll_number))
+        
+        cursor.execute("""UPDATE Players
+                          SET last_roll_timestamp = DATETIME('now', 'localtime')
+                          WHERE player_id = :roller_id""",
+                        {'roller_id': roller_id})
+
         connection.commit()
         connection.close()
     
@@ -144,7 +150,8 @@ class Gacha(commands.Cog):
 
             connection = sqlite3.connect("./cogs/idol_gacha.db")
             cursor = connection.cursor()
-            cursor.execute("UPDATE Idols SET player_id = 0 WHERE (player_id IS NOT NULL AND player_id != 0)")
+            cursor.execute("""UPDATE Idols SET player_id = 0
+                              WHERE (player_id IS NOT NULL AND player_id != 0)""")
 
             await ctx.send("Gacha has been reset.")
             connection.commit()
@@ -153,49 +160,6 @@ class Gacha(commands.Cog):
         else:
             await ctx.send("You do not have permission for this command.")
             
-    '''
-    @commands.Cog.listener()
-    async def on_reaction_add(self, reaction, user):
-        channel = reaction.message.channel
-        await client.send_message(channel, "{} has added {} to the message: {}")
-    '''
-    
-    #not needed? just filter thru gachacards table
-    '''
-    async def create_new_player(self, player):
-        #print("Do we need to open an account?")
-        players = await self.get_player_data()
-        
-        if str(player.id) in players:
-            #print("No, account already exists.")
-            return False
-        else:
-            #print(f"Yes, creating account for {user.id}...")
-            players[str(player.id)] = {}
-            players[str(player.id)]["party"] = {}
-            players[str(player.id)]["bank"] = 0
-            #print(f"{user.id}'s account was created.")
-
-        await self.update_player_data(players)
-        return True
-    
-    async def get_player_data(self):
-        #print("Getting bank data...")
-        with open("./cogs/gachaplayers.json","r") as f:
-            #print("Reading JSON...")
-            players = json.load(f)
-
-        #print("JSON read!")
-        return players
-    
-    async def update_player_data(self, players):
-        with open("./cogs/mainbank.json","w") as f:
-            #print("Updating JSON...")
-            json.dump(players,f)
-
-        #print("JSON updated!")
-        return True
-    '''
     async def get_card_data(self):
         #print("Getting card data...")
         with open("./cogs/gachacards.json","r") as f:
@@ -233,8 +197,8 @@ class GachaButtonMenu(discord.ui.View):
         #print("connection made")
 
         cursor.execute("""SELECT * FROM Idols
-                       WHERE idol_id = :roll_number""",
-                       {'roll_number': self.roll_number})
+                          WHERE idol_id = :roll_number""",
+                        {'roll_number': self.roll_number})
         roll = cursor.fetchone()
         roll_name = roll[1]
         #print(roll)
@@ -245,8 +209,10 @@ class GachaButtonMenu(discord.ui.View):
             roll_claimed = True
         
         if not roll_claimed:
-            cursor.execute("UPDATE Idols SET player_id = :userid WHERE idol_id = :roll_number",
-                       {'userid': userid, 'roll_number': self.roll_number})
+            cursor.execute("""UPDATE Idols
+                              SET player_id = :userid
+                              WHERE idol_id = :roll_number""",
+                            {'userid': userid, 'roll_number': self.roll_number})
             content=f"{roll_name} was caught by {interaction.user.mention}!"
             #print(roll)
         else:
