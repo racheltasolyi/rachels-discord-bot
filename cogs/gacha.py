@@ -14,8 +14,7 @@ class Gacha(commands.Cog):
 
     @commands.command(aliases=["g"])
     async def gacha(self, ctx, arg: int = None):
-        #images = [image for image in os.listdir("./cogs/welcome_images")]
-        #randomized_image = random.choice(images)
+
         #print("!gacha command called!")
         roller_id = ctx.author.id
         #print(roller_id)
@@ -35,7 +34,6 @@ class Gacha(commands.Cog):
             roll_number = random.randrange(30)
             
         print(roll_number)
-        #cards = await self.get_card_data()
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
         #print("connection made")
@@ -135,11 +133,7 @@ class Gacha(commands.Cog):
     
     @commands.command()
     async def resetgacha(self, ctx):
-        '''cards = await self.get_card_data()
-        for card in cards:
-            cards[str(card)]["claimed"] = False
-            cards[str(card)]["owner"] = None
-        await self.update_card_data(cards)'''
+
         with open("./admin.txt") as file:
             adminid = int(file.read())
             #print("adminid =", repr(adminid), type(adminid))
@@ -159,23 +153,6 @@ class Gacha(commands.Cog):
         
         else:
             await ctx.send("You do not have permission for this command.")
-            
-    async def get_card_data(self):
-        #print("Getting card data...")
-        with open("./cogs/gachacards.json","r") as f:
-            #print("Reading JSON...")
-            cards = json.load(f)
-
-        #print("JSON read!")
-        return cards
-    
-    async def update_card_data(self, cards):
-        with open("./cogs/gachacards.json","w") as f:
-            #print("Updating JSON...")
-            json.dump(cards,f)
-
-        #print("JSON updated!")
-        return True
     
 class GachaButtonMenu(discord.ui.View):
     roll_number = None
@@ -185,13 +162,10 @@ class GachaButtonMenu(discord.ui.View):
         self.roll_number = roll_number
     
     @discord.ui.button(label="Throw Pokeball", style=discord.ButtonStyle.blurple)
-    async def test(self, interaction: discord.Interaction, Button: discord.ui.Button):
+    async def throwpokeball(self, interaction: discord.Interaction, Button: discord.ui.Button):
         userid = interaction.user.id
         #print(userid)
-        #cards = await Gacha.get_card_data(self)
-        #print(cards)
-        #print(self.roll_number)
-        #print(f"before: {cards[str(self.roll_number)]['claimed']}")
+
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
         #print("connection made")
@@ -220,18 +194,6 @@ class GachaButtonMenu(discord.ui.View):
         
         connection.commit()
         connection.close()
-
-        '''
-        if cards[str(self.roll_number)]["claimed"] is False:
-            cards[str(self.roll_number)]["claimed"] = True
-            cards[str(self.roll_number)]["owner"] = userid
-            await Gacha.update_card_data(self, cards)
-            content=f"{cards[str(self.roll_number)]['name']} was caught by {interaction.user.mention}!"
-        else:
-            content=f"Too bad, {cards[str(self.roll_number)]['name']} has already been caught!"
-        '''
-        #print(f"after: {cards[str(self.roll_number)]['claimed']}")
-        #print(cards[str(self.roll_number)]["owner"])
 
         await interaction.response.send_message(content=content)
         

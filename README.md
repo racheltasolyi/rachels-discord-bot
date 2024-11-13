@@ -57,3 +57,11 @@
 3. `git commit m ""` and write commit message inside quotations
 4. `git push` to push commit to GitHub
    - If working on a new branch, use `git push origin [new-branch-name]`
+
+
+## Steps to Create a New Feature Branch
+1. `git stash` any changes
+2. `git checkout -b [new-branch-name] [old-branch-name]` to create and move to the new branch
+   - The new branch becomes a child of the old branch
+   - Can leave out `checkout` to create the new branch but stay on the old branch
+3. Can `git stash pop` to reapply changes to the new branch
