@@ -121,7 +121,7 @@ class Gacha(commands.Cog):
             if roll_logo is None:
                 await ctx.send(files=[uploaded_roll_image], embed=card, view=GachaButtonMenu(roll_number))
             else:
-                await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=GachaButtonMenu(roll_number, roller_id))
+                await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=GachaButtonMenu(roll_number))
         
         cursor.execute("""UPDATE Players
                           SET last_roll_timestamp = DATETIME('now', 'localtime')
@@ -157,15 +157,13 @@ class Gacha(commands.Cog):
 class GachaButtonMenu(discord.ui.View):
     roll_number = None
 
-    def __init__(self, roll_number, roller_id):
+    def __init__(self, roll_number):
         super().__init__(timeout=60)
         self.roll_number = roll_number
-        self.roller_id = roller_id
     
     @discord.ui.button(label="Throw Pokeball", style=discord.ButtonStyle.blurple)
     async def throwpokeball(self, interaction: discord.Interaction, Button: discord.ui.Button):
         userid = interaction.user.id
-        roller = await interaction.fetch_user(self.roller_id)
         #print(userid)
 
         connection = sqlite3.connect("./cogs/idol_gacha.db")
@@ -179,25 +177,20 @@ class GachaButtonMenu(discord.ui.View):
         roll_name = roll[1]
         #print(roll)
 
-        if (userid != self.roller_id):
-            content=f"{roll_name} can only be caught by {roller}!"
-        
+        if (roll[3] == 0 or roll[3] == None):
+            roll_claimed = False
         else:
-
-            if (roll[3] == 0 or roll[3] == None):
-                roll_claimed = False
-            else:
-                roll_claimed = True
-            
-            if not roll_claimed:
-                cursor.execute("""UPDATE Idols
-                                SET player_id = :userid
-                                WHERE idol_id = :roll_number""",
-                                {'userid': userid, 'roll_number': self.roll_number})
-                content=f"{roll_name} was caught by {interaction.user.mention}!"
-                #print(roll)
-            else:
-                content=f"You already caught {roll_name}!"
+            roll_claimed = True
+        
+        if not roll_claimed:
+            cursor.execute("""UPDATE Idols
+                              SET player_id = :userid
+                              WHERE idol_id = :roll_number""",
+                            {'userid': userid, 'roll_number': self.roll_number})
+            content=f"{roll_name} was caught by {interaction.user.mention}!"
+            #print(roll)
+        else:
+            content=f"Too bad, {roll_name} has already been caught!"
         
         connection.commit()
         connection.close()
