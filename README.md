@@ -37,14 +37,16 @@
 8. Make sure Admin's User ID is saved in the repo's folder in a file called "admin.txt"
 9. Install Python if necessary
 10. Install Prettier if necessary (might already be in node_modules, need to check)
-   - Open "Extensions" tab on the sidebar (symbol that looks like tetris squares)
-   - Find and install "Prettier - Code formatter"
-   - `CTRL`+`,` to open Settings on Windows or Linux
-   - Search for "Editor: Default Formatter" and select "Prettier - Code formatter" from the dropdown
-   - Search for "Editor: Format On Save" and turn on
-   - To apply Prettier to current file, Save
-     - Or `CTRL`+`Shift`+`P` to open the command palette on Windows, then select "Format Document"
-10. In the terminal, run `install discord`, `pip install easy-pil`, and `pip install asyncpraw` if necessary (add ` --user` at the end if you run into any permissions issues)
+    - Open "Extensions" tab on the sidebar (symbol that looks like tetris squares)
+    - Find and install "Prettier - Code formatter"
+    - `CTRL`+`,` to open Settings on Windows or Linux
+    - Search for "Editor: Default Formatter" and select "Prettier - Code formatter" from the dropdown
+    - Search for "Editor: Format On Save" and turn on
+    - To apply Prettier to current file, Save
+      - Or `CTRL`+`Shift`+`P` to open the command palette on Windows, then select "Format Document"
+11. In the terminal, run `install discord`, `pip install easy-pil`, and `pip install asyncpraw` if necessary (add ` --user` at the end if you run into any permissions issues)
+    - If asyncpraw is outdated, run `pip install --upgrade https://github.com/praw-dev/asyncpraw/archive/master.zip` to update to latest version
+   
 
 
 ## Steps to Push New Changes to Current Branch
