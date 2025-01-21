@@ -1,5 +1,6 @@
 ## Idol Gacha Commands
 - **!gacha | !g**: Rolls a random idol card that you can catch with a Pokeball
+  - Idols can only be caught by the user who rolled them
   - **!gacha [x] | !g [x]**: Admin only. Rolls the idol whose Idol ID matches [x]
 - **!resetgacha**: Admin only. Releases all caught idols back into the wild
 
