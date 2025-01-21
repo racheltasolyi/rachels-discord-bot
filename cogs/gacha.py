@@ -121,7 +121,7 @@ class Gacha(commands.Cog):
             if roll_logo is None:
                 await ctx.send(files=[uploaded_roll_image], embed=card, view=GachaButtonMenu(roll_number))
             else:
-                await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=GachaButtonMenu(roll_number, roller_id))
+                await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=GachaButtonMenu(roll_number))
         
         cursor.execute("""UPDATE Players
                           SET last_roll_timestamp = DATETIME('now', 'localtime')
@@ -157,10 +157,9 @@ class Gacha(commands.Cog):
 class GachaButtonMenu(discord.ui.View):
     roll_number = None
 
-    def __init__(self, roll_number, roller_id):
+    def __init__(self, roll_number):
         super().__init__(timeout=60)
         self.roll_number = roll_number
-        self.roller_id = roller_id
     
     @discord.ui.button(label="Throw Pokeball", style=discord.ButtonStyle.blurple)
     async def throwpokeball(self, interaction: discord.Interaction, Button: discord.ui.Button):
