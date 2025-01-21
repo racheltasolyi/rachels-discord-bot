@@ -12,6 +12,7 @@ class Gacha(commands.Cog):
     async def on_ready(self):
         print(f"{__name__} is online!")
 
+    ### !GACHA COMMAND: ROLL A RANDOM IDOL ###
     @commands.command(aliases=["g"])
     async def gacha(self, ctx, arg: int = None):
 
@@ -19,6 +20,7 @@ class Gacha(commands.Cog):
         roller_id = ctx.author.id
         #print(f"roller_id = {roller_id}")
 
+        ### ADMIN COMMAND: ROLL SPECIFIED IDOL ###
         if (arg != None):
             with open("./admin.txt") as file:
                 adminid = int(file.read())
@@ -29,11 +31,14 @@ class Gacha(commands.Cog):
                 await ctx.send("You do not have permission for this command.")
                 return
 
+        ### DETERMINE ROLL NUMBER ###
         else:
             #roll_number = 29
             roll_number = random.randrange(30)
             
         print(roll_number)
+
+        ### FETCH PLAYER ###
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
         #print("connection made")
@@ -42,12 +47,14 @@ class Gacha(commands.Cog):
                           WHERE player_id = :roller_id""",
                         {'roller_id': roller_id})
         player = cursor.fetchone()
-        #print(player)
+        
+        ### IF PLAYER IS NEW, ADD NEW PLAYER TO DATABASE ###
         if player is None:
             cursor.execute("""INSERT INTO Players (player_id)
                               Values (:roller_id)""",
                             {'roller_id': roller_id})
 
+        ### FETCH THE ROLLED IDOL AND THEIR GROUP ###
         cursor.execute("""SELECT * FROM Idols
                           WHERE idol_id = :roll_number""",
                         {'roll_number': roll_number})
@@ -55,7 +62,6 @@ class Gacha(commands.Cog):
         if roll is None:
             await ctx.send("The rolled idol does not exist.")
             return
-
         cursor.execute("""SELECT group_id FROM GroupMembers
                           WHERE idol_id = :roll_number""",
                         {'roll_number': roll_number})
@@ -64,7 +70,6 @@ class Gacha(commands.Cog):
         if roll_group_id is None:
             await ctx.send("The rolled idol's Group ID does not exist.")
             return
-
         cursor.execute("""SELECT * FROM Groups
                           WHERE group_id = :roll_group_id""",
                         {'roll_group_id': roll_group_id[0]})
@@ -73,8 +78,9 @@ class Gacha(commands.Cog):
         if roll_group is None:
             await ctx.send("The rolled idol's Group does not exist.")
             return
-
         #print("Got card data!")
+
+        ### BUILD IDOL CARD ###
         roll_name = roll[1]
         roll_group_name = roll_group[1]
         roll_image = roll[2]
@@ -97,6 +103,7 @@ class Gacha(commands.Cog):
         card.set_footer(text=f"Rolled by {ctx.author.name}", icon_url=ctx.author.avatar)
         #print("Embed created!")
 
+        ### DISPLAY IDOL CARD WITH CATCH BUTTON, DEPENDING ON WHETHER IT IS CLAIMED OR NOT ###
         if roll_claimed:
             roll_owner_id = roll[3]
             roll_owner = await ctx.bot.fetch_user(roll_owner_id)
@@ -123,6 +130,7 @@ class Gacha(commands.Cog):
             else:
                 await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=GachaButtonMenu(roll_number))
         
+        ### UPDATE TIMESTAMP OF PLAYER'S LAST ROLL ###
         cursor.execute("""UPDATE Players
                           SET last_roll_timestamp = DATETIME('now', 'localtime')
                           WHERE player_id = :roller_id""",
@@ -131,9 +139,11 @@ class Gacha(commands.Cog):
         connection.commit()
         connection.close()
     
+    ### ADMIN COMMAND: RESET GACHA GAME ###
     @commands.command()
     async def resetgacha(self, ctx):
 
+        ### CHECK IF USER IS ADMIN ###
         with open("./admin.txt") as file:
             adminid = int(file.read())
             #print("adminid =", repr(adminid), type(adminid))
@@ -142,6 +152,7 @@ class Gacha(commands.Cog):
 
         if (ctx.author.id == adminid):
 
+            ### RELEASE ALL IDOLS BACK INTO THE WILD ###
             connection = sqlite3.connect("./cogs/idol_gacha.db")
             cursor = connection.cursor()
             cursor.execute("""UPDATE Idols SET player_id = 0
@@ -151,12 +162,15 @@ class Gacha(commands.Cog):
             connection.commit()
             connection.close()
         
+        ### FAIL IF USER IS NOT ADMIN ###
         else:
             await ctx.send("You do not have permission for this command.")
-    
+
+### BUTTON TO CATCH IDOLS ###
 class GachaButtonMenu(discord.ui.View):
     roll_number = None
 
+    ### BUTTON TIMES OUT AFTER 60 SECONDS ###
     def __init__(self, roll_number):
         super().__init__(timeout=60)
         self.roll_number = roll_number
@@ -170,6 +184,7 @@ class GachaButtonMenu(discord.ui.View):
         cursor = connection.cursor()
         #print("connection made")
 
+        ### FETCH IDOL NAME ###
         cursor.execute("""SELECT * FROM Idols
                           WHERE idol_id = :roll_number""",
                         {'roll_number': self.roll_number})
@@ -177,6 +192,7 @@ class GachaButtonMenu(discord.ui.View):
         roll_name = roll[1]
         #print(roll)
 
+        ### SUCCESSFULLY CATCH IDOL IF CORRECT PLAYER, FAIL UPON REPEATED ATTEMPTS ###
         if (userid == self.roller_id):
             if (roll[3] == 0 or roll[3] == None):
                 roll_claimed = False
@@ -193,6 +209,7 @@ class GachaButtonMenu(discord.ui.View):
             else:
                 content=f"You already caught {roll_name}!"
 
+        ### FAIL IF DIFFERENT PLAYER ###
         else:
             content=f"Nice try {interaction.user.mention}, {roll_name} can only be caught by <@{roller}> this time!"
         
