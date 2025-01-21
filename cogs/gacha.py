@@ -17,7 +17,7 @@ class Gacha(commands.Cog):
 
         #print("!gacha command called!")
         roller_id = ctx.author.id
-        print(f"roller_id = {roller_id}")
+        #print(f"roller_id = {roller_id}")
 
         if (arg != None):
             with open("./admin.txt") as file:
@@ -166,8 +166,6 @@ class GachaButtonMenu(discord.ui.View):
     async def throwpokeball(self, interaction: discord.Interaction, Button: discord.ui.Button):
         userid = interaction.user.id
         roller = self.roller_id
-        print(f"userid who pressed button: {userid}")
-        print(f"userid who rolled: {roller}")
 
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
