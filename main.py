@@ -17,8 +17,27 @@ async def change_bot_status():
 
 @bot.event
 async def on_ready():
+    # await bot.tree.sync() # [Paradoxical] Part 21: Buttons
     print("Bot ready!")
     change_bot_status.start()
+    # try:
+    #     synced_commands = await bot.tree.sync()
+    #     print(f"Synced {len(synced_commands)} commands.")
+    # except Exception as e:
+    #     print("An error with syncing application commands has occurred: ", e)
+
+@bot.command(aliases=["s", "synccmd"])
+async def sync(ctx):
+    await bot.tree.sync()
+    try:
+        synced_commands = await bot.tree.sync()
+        await ctx.send(f"Synced {len(synced_commands)} commands.")
+    except Exception as e:
+        await ctx.send("An error with syncing application commands has occurred: ", e)
+
+@bot.tree.command(name="hello", description="Says hello back to the user.")
+async def hello(interaction: discord.Interaction):
+    await interaction.response.send_message(f"{interaction.user.mention}, hello there!")
 
 @bot.command(aliases=["hi"])
 async def hello(ctx):
@@ -38,12 +57,25 @@ async def sendembed(ctx):
     embeded_msg.set_footer(text="Footer text", icon_url=ctx.author.avatar)
     await ctx.send(embed=embeded_msg)
 
-# @bot.command()
-# async def ping(ctx):
-#     ping_embed = discord.Embed(title="Ping",description="Latency in ms", color=discord.Color.blue())
-#     ping_embed.add_field(name=f"{bot.user.name}'s Latency: ", value=f"{round(bot.latency * 1000)}ms.", inline=False)
-#     ping_embed.set_footer(text=f"Requested by {ctx.author.name}.", icon_url=ctx.author.avatar)
-#     await ctx.send(embed=ping_embed)
+# [Paradoxical] Part 21: Buttons (button menu as slash command)
+
+# class TestMenuButton(discord.ui.View):
+#     def __init__(self):
+#         super().__init__(timeout=None)
+    
+#     @discord.ui.button(label="Test", style=discord.ButtonStyle.blurple)
+#     async def test(self, interaction: discord.Interaction, Button: discord.ui.Button):
+#         await interaction.response.send_message(content="Test successful!")
+#     @discord.ui.button(label="Click Me...", style=discord.ButtonStyle.green)
+#     async def test2(self, interaction: discord.Interaction, Button: discord.ui.Button):
+#         await interaction.response.send_message(content="I've been clicked!")
+#     @discord.ui.button(label="Exit", style=discord.ButtonStyle.red)
+#     async def test3(self, interaction: discord.Interaction, Button: discord.ui.Button):
+#         await interaction.response.send_message(content="Exiting Menu...")
+    
+# @bot.tree.command(name="buttonmenu")
+# async def buttonmenu(interaction: discord.Interaction):
+#     await interaction.response.send_message(content="Here's my button menu!", view=TestMenuButton())
 
 with open("token.txt") as file:
     token = file.read()
