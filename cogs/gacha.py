@@ -17,7 +17,7 @@ class Gacha(commands.Cog):
 
         #print("!gacha command called!")
         roller_id = ctx.author.id
-        #print(roller_id)
+        #print(f"roller_id = {roller_id}")
 
         if (arg != None):
             with open("./admin.txt") as file:
@@ -164,7 +164,7 @@ class GachaButtonMenu(discord.ui.View):
     @discord.ui.button(label="Throw Pokeball", style=discord.ButtonStyle.blurple)
     async def throwpokeball(self, interaction: discord.Interaction, Button: discord.ui.Button):
         userid = interaction.user.id
-        #print(userid)
+        roller = self.roller_id
 
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
@@ -177,20 +177,24 @@ class GachaButtonMenu(discord.ui.View):
         roll_name = roll[1]
         #print(roll)
 
-        if (roll[3] == 0 or roll[3] == None):
-            roll_claimed = False
+        if (userid == self.roller_id):
+            if (roll[3] == 0 or roll[3] == None):
+                roll_claimed = False
+            else:
+                roll_claimed = True
+            
+            if not roll_claimed:
+                cursor.execute("""UPDATE Idols
+                                SET player_id = :userid
+                                WHERE idol_id = :roll_number""",
+                                {'userid': userid, 'roll_number': self.roll_number})
+                content=f"{roll_name} was caught by {interaction.user.mention}!"
+                #print(roll)
+            else:
+                content=f"You already caught {roll_name}!"
+
         else:
-            roll_claimed = True
-        
-        if not roll_claimed:
-            cursor.execute("""UPDATE Idols
-                              SET player_id = :userid
-                              WHERE idol_id = :roll_number""",
-                            {'userid': userid, 'roll_number': self.roll_number})
-            content=f"{roll_name} was caught by {interaction.user.mention}!"
-            #print(roll)
-        else:
-            content=f"Too bad, {roll_name} has already been caught!"
+            content=f"Nice try {interaction.user.mention}, {roll_name} can only be caught by <@{roller}> this time!"
         
         connection.commit()
         connection.close()
