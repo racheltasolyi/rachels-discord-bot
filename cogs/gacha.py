@@ -167,7 +167,7 @@ class Gacha(commands.Cog):
             await ctx.send("You do not have permission for this command.")
     
     ### ADMIN COMMAND: ADD NEW ACHIEVEMENT ###
-    @commands.command(aliases=["newachievement"])
+    @commands.command(aliases=["newachievement", "adda", "newa"])
     async def addachievement(self, ctx, *args):
 
         ### CHECK IF USER IS ADMIN ###
@@ -180,23 +180,32 @@ class Gacha(commands.Cog):
             if len(args) == 0:
                 await ctx.send("Insufficient parameters. Please provide the name of the new achievement in quotes and (optional) an achievement ID.")
             
-            ### IF 1 ARG, ADD ACHIEVEMENT TO DATABASE WITH DEFAULT ID ###
-            if len(args) == 1:
+            ### IF AT LEAST 1 ARG, ADD ACHIEVEMENT TO DATABASE ###
+            else:
                 new_achievement_name = args[0]
                 connection = sqlite3.connect("./cogs/idol_gacha.db")
                 cursor = connection.cursor()
                 cursor.execute("""INSERT INTO AchievementList (achievement_name)
                                 Values (:new_achievement_name)""",
                                 {'new_achievement_name': new_achievement_name})
+                
+                ### IF 2 ARGS, UPDATE ACHIEVEMENT ID TO SPECIFIED NUMBER ###
+                if len(args) == 2:
+                    new_achievement_id = args[1]
+                    cursor.execute("""UPDATE AchievementList SET achievement_id = :new_achievement_id
+                              WHERE achievement_name = :new_achievement_name""",
+                              {'new_achievement_id': new_achievement_id,'new_achievement_name': new_achievement_name})
+                
+                ### CONFIRMATION MESSAGE ###
                 cursor.execute("""SELECT * FROM AchievementList
                           WHERE achievement_name = :new_achievement_name""",
-                        {'new_achievement_name': new_achievement_name})
+                          {'new_achievement_name': new_achievement_name})
                 new_achievement = cursor.fetchone()
 
                 await ctx.send(f"{new_achievement} has successfully been added to the database.")
             
-            connection.commit()
-            connection.close()
+                connection.commit()
+                connection.close()
         
         ### FAIL IF USER IS NOT ADMIN ###
         else:
