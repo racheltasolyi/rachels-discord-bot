@@ -3,6 +3,7 @@
   - Idols can only be caught by the user who rolled them
   - **!gacha [x] | !g [x]**: Admin only. Rolls the idol whose Idol ID matches [x]
 - **!resetgacha**: Admin only. Releases all caught idols back into the wild
+- **!addachievement "[x]"| !newachievement "[x]"**: Admin only. Adds a new achievement named [x] to the database 
 
 
 ## Other Commands/Features (in order they were added)
