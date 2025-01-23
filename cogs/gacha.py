@@ -176,9 +176,11 @@ class Gacha(commands.Cog):
 
         if (ctx.author.id == adminid):
             
-            ### IF NO ARGS, DISPLAY CORRECT SYNTAX ###
+            ### IF NO ARGS OR MORE THAN 2 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) == 0:
                 await ctx.send("Insufficient parameters. Please provide the name of the new achievement in quotes and (optional) an achievement ID.")
+            elif len(args) > 2:
+                await ctx.send("Too many parameters. Please provide the name of the new achievement in quotes and (optional) an achievement ID.")
             
             ### IF AT LEAST 1 ARG, ADD ACHIEVEMENT TO DATABASE ###
             else:
@@ -211,7 +213,7 @@ class Gacha(commands.Cog):
         else:
             await ctx.send("You do not have permission for this command.")
     
-    ### ADMIN COMMAND: ADD NEW ACHIEVEMENT ###
+    ### ADMIN COMMAND: ADD NEW GROUP ###
     @commands.command(aliases=["newgroup", "addg", "newg"])
     async def addgroup(self, ctx, *args):
 
@@ -221,9 +223,11 @@ class Gacha(commands.Cog):
 
         if (ctx.author.id == adminid):
             
-            ### IF LESS THAN 2 ARGS, DISPLAY CORRECT SYNTAX ###
+            ### IF LESS THAN 2 ARGS OR MORE THAN 4 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) < 2:
                 await ctx.send("Insufficient parameters. Please provide the name of the new group in quotes, the filename of the group's logo, (optional) an achievement ID to associate the group with, and (optional) a group ID.")
+            elif len(args) > 4:
+                await ctx.send("Too many parameters. Please provide the name of the new group in quotes, the filename of the group's logo, (optional) an achievement ID to associate the group with, and (optional) a group ID.")
             
             ### IF AT LEAST 2 ARGS, ADD GROUP TO DATABASE ###
             else:
@@ -256,6 +260,78 @@ class Gacha(commands.Cog):
                 new_group = cursor.fetchone()
 
                 await ctx.send(f"{new_group} has successfully been added to Groups.")
+            
+                connection.commit()
+                connection.close()
+        
+        ### FAIL IF USER IS NOT ADMIN ###
+        else:
+            await ctx.send("You do not have permission for this command.")
+    
+    ### ADMIN COMMAND: ADD NEW IDOL ###
+    @commands.command(aliases=["newidol", "addi", "newi"])
+    async def addidol(self, ctx, *args):
+
+        ### CHECK IF USER IS ADMIN ###
+        with open("./admin.txt") as file:
+            adminid = int(file.read())
+
+        if (ctx.author.id == adminid):
+            
+            ### IF LESS THAN 2 ARGS OR MORE THAN 4 ARGS, DISPLAY CORRECT SYNTAX ###
+            if len(args) < 2:
+                await ctx.send("Insufficient parameters. Please provide the name of the new idol in quotes, the filename of the idol's image, (optional) the group ID the idol is in, and (optional) an idol ID.")
+            elif len(args) > 4:
+                await ctx.send("Too many parameters. Please provide the name of the new idol in quotes, the filename of the idol's image, (optional) the group ID the idol is in, and (optional) an idol ID.")
+            
+            ### IF AT LEAST 2 ARGS, ADD IDOL TO DATABASE ###
+            else:
+                new_idol_name = args[0]
+                new_idol_image = args[1]
+                connection = sqlite3.connect("./cogs/idol_gacha.db")
+                cursor = connection.cursor()
+                cursor.execute("""INSERT INTO Idols (idol_name, idol_image)
+                                Values (:new_idol_name, :new_idol_image)""",
+                                {'new_idol_name': new_idol_name, 'new_idol_image': new_idol_image})
+                
+                ### IF 4 ARGS, UPDATE IDOL'S ID ###
+                if len(args) == 4:
+                    new_idol_id = args[3]
+                    cursor.execute("""UPDATE Idols SET idol_id = :new_idol_id
+                                    WHERE idol_image = :new_idol_image""",
+                                    {'new_idol_id': new_idol_id,'new_idol_image': new_idol_image})
+                
+                ### ELSE, FETCH NEW IDOL'S ID ###
+                else:
+                    cursor.execute("""SELECT idol_id FROM Idols
+                                    WHERE idol_image = :new_idol_image""",
+                                    {'new_idol_image': new_idol_image})
+                    new_idol_id = cursor.fetchone()[0]
+                
+                ### IF AT LEAST 3 ARGS, ENTER IDOL'S GROUP IN GROUPMEMBERS ###
+                if len(args) > 2:
+                    new_idol_group = args[2]
+                
+                ### IF ONLY 2 ARGS, DEFAULT IDOL'S GROUP TO 0 (SOLOIST) ###
+                else:
+                    new_idol_group = 0
+
+                cursor.execute("""INSERT INTO GroupMembers (idol_id, group_id, active)
+                                Values (:new_idol_id, :new_idol_group, TRUE)""",
+                                {'new_idol_id': new_idol_id,'new_idol_group': new_idol_group})
+                    
+                ### CONFIRMATION MESSAGE ###
+                cursor.execute("""SELECT * FROM Idols
+                                WHERE idol_id = :new_idol_id""",
+                                {'new_idol_id': new_idol_id})
+                new_idol = cursor.fetchone()
+                cursor.execute("""SELECT * FROM GroupMembers
+                                WHERE idol_id = :new_idol_id
+                                AND group_id = :new_idol_group""",
+                          {'new_idol_id': new_idol_id, 'new_idol_group': new_idol_group})
+                new_groupmember = cursor.fetchone()
+
+                await ctx.send(f"{new_idol} has successfully been added to Idols. {new_groupmember} has successfully been added to Group Members.")
             
                 connection.commit()
                 connection.close()
