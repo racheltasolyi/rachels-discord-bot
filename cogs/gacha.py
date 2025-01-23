@@ -310,16 +310,17 @@ class Gacha(commands.Cog):
                 
                 ### IF AT LEAST 3 ARGS, ENTER IDOL'S GROUP IN GROUPMEMBERS ###
                 if len(args) > 2:
-                    new_idol_group = args[2]
+                    new_idol_group_id = args[2]
                 
                 ### IF ONLY 2 ARGS, DEFAULT IDOL'S GROUP TO 0 (SOLOIST) ###
                 else:
-                    new_idol_group = 0
+                    new_idol_group_id = 0
 
                 cursor.execute("""INSERT INTO GroupMembers (idol_id, group_id, active)
-                                Values (:new_idol_id, :new_idol_group, TRUE)""",
-                                {'new_idol_id': new_idol_id,'new_idol_group': new_idol_group})
-                    
+                                Values (:new_idol_id, :new_idol_group_id, TRUE)""",
+                                {'new_idol_id': new_idol_id,'new_idol_group_id': new_idol_group_id})
+                
+                '''
                 ### CONFIRMATION MESSAGE ###
                 cursor.execute("""SELECT * FROM Idols
                                 WHERE idol_id = :new_idol_id""",
@@ -327,11 +328,44 @@ class Gacha(commands.Cog):
                 new_idol = cursor.fetchone()
                 cursor.execute("""SELECT * FROM GroupMembers
                                 WHERE idol_id = :new_idol_id
-                                AND group_id = :new_idol_group""",
-                          {'new_idol_id': new_idol_id, 'new_idol_group': new_idol_group})
+                                AND group_id = :new_idol_group_id""",
+                          {'new_idol_id': new_idol_id, 'new_idol_group_id': new_idol_group_id})
                 new_groupmember = cursor.fetchone()
 
                 await ctx.send(f"{new_idol} has successfully been added to Idols. {new_groupmember} has successfully been added to Group Members.")
+                '''
+
+                ### BUILD NEW IDOL CARD ###
+                cursor.execute("""SELECT * FROM Groups
+                                WHERE group_id = :new_idol_group_id""",
+                                {'new_idol_group_id': new_idol_group_id})
+                new_idol_group = cursor.fetchone()
+                if new_idol_group is None:
+                    await ctx.send("The new idol's Group does not exist.")
+                    return
+                
+                new_idol_group_name = new_idol_group[1]
+                new_idol_group_logo = new_idol_group[2]
+
+                uploaded_new_idol_image = discord.File(f"./cogs/gacha_images/idols/{new_idol_image}", filename=new_idol_image)
+                if new_idol_group_logo is not None:
+                    uploaded_new_idol_group_logo = discord.File(f"./cogs/gacha_images/logos/{new_idol_group_logo}", filename=new_idol_group_logo)
+
+                card = discord.Embed(title=new_idol_name, description=new_idol_group_name, color=discord.Color.green())
+                if new_idol_group_logo is not None:
+                    card.set_thumbnail(url=f"attachment://{new_idol_group_logo}")
+                card.set_image(url=f"attachment://{new_idol_image}")
+                card.set_footer(text=f"New idol added by {ctx.author.name}", icon_url=ctx.author.avatar)
+                card.add_field(
+                    name=f"{new_idol_name} successfully added!",
+                    inline=False
+                )
+
+                ### DISPLAY NEW IDOL CARD WITHOUT CATCH BUTTON ###
+                if new_idol_group_logo is None:
+                    await ctx.send(files=[uploaded_new_idol_image], embed=card)
+                else:
+                    await ctx.send(files=[uploaded_new_idol_image, uploaded_new_idol_group_logo], embed=card)
             
                 connection.commit()
                 connection.close()
