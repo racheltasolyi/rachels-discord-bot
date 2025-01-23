@@ -126,9 +126,9 @@ class Gacha(commands.Cog):
             )
             #await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card)
             if roll_logo is None:
-                await ctx.send(files=[uploaded_roll_image], embed=card, view=GachaButtonMenu(roll_number))
+                await ctx.send(files=[uploaded_roll_image], embed=card, view=GachaButtonMenu(roll_number, roller_id))
             else:
-                await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=GachaButtonMenu(roll_number))
+                await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=GachaButtonMenu(roll_number, roller_id))
         
         ### UPDATE TIMESTAMP OF PLAYER'S LAST ROLL ###
         cursor.execute("""UPDATE Players
@@ -202,7 +202,60 @@ class Gacha(commands.Cog):
                           {'new_achievement_name': new_achievement_name})
                 new_achievement = cursor.fetchone()
 
-                await ctx.send(f"{new_achievement} has successfully been added to the database.")
+                await ctx.send(f"{new_achievement} has successfully been added to Achievements.")
+            
+                connection.commit()
+                connection.close()
+        
+        ### FAIL IF USER IS NOT ADMIN ###
+        else:
+            await ctx.send("You do not have permission for this command.")
+    
+    ### ADMIN COMMAND: ADD NEW ACHIEVEMENT ###
+    @commands.command(aliases=["newgroup", "addg", "newg"])
+    async def addgroup(self, ctx, *args):
+
+        ### CHECK IF USER IS ADMIN ###
+        with open("./admin.txt") as file:
+            adminid = int(file.read())
+
+        if (ctx.author.id == adminid):
+            
+            ### IF LESS THAN 2 ARGS, DISPLAY CORRECT SYNTAX ###
+            if len(args) < 2:
+                await ctx.send("Insufficient parameters. Please provide the name of the new group in quotes, the filename of the group's logo, (optional) an achievement ID to associate the group with, and (optional) a group ID.")
+            
+            ### IF AT LEAST 2 ARGS, ADD GROUP TO DATABASE ###
+            else:
+                new_group_name = args[0]
+                new_group_logo = args[1]
+                connection = sqlite3.connect("./cogs/idol_gacha.db")
+                cursor = connection.cursor()
+                cursor.execute("""INSERT INTO Groups (group_name, group_logo)
+                                Values (:new_group_name, :new_group_logo)""",
+                                {'new_group_name': new_group_name, 'new_group_logo': new_group_logo})
+                
+                ### IF AT LEAST 3 ARGS, UPDATE GROUP'S ACHIEVEMENT ID ###
+                if len(args) > 2:
+                    group_achievement_id = args[2]
+                    cursor.execute("""UPDATE Groups SET achievement_id = :group_achievement_id
+                              WHERE group_name = :new_group_name""",
+                              {'group_achievement_id': group_achievement_id,'new_group_name': new_group_name})
+                
+                    ### IF 4 ARGS, UPDATE GROUP'S ID ###
+                    if len(args) == 4:
+                        new_group_id = args[3]
+                        cursor.execute("""UPDATE Groups SET group_id = :new_group_id
+                                WHERE group_name = :new_group_name""",
+                                {'new_group_id': new_group_id,'new_group_name': new_group_name})
+                
+                ### CONFIRMATION MESSAGE ###
+                cursor.execute("""SELECT * FROM Groups
+                          WHERE group_name = :new_group_name""",
+                          {'new_group_name': new_group_name})
+                new_group = cursor.fetchone()
+
+                await ctx.send(f"{new_group} has successfully been added to Groups.")
             
                 connection.commit()
                 connection.close()
@@ -216,9 +269,10 @@ class GachaButtonMenu(discord.ui.View):
     roll_number = None
 
     ### BUTTON TIMES OUT AFTER 60 SECONDS ###
-    def __init__(self, roll_number):
+    def __init__(self, roll_number, roller_id):
         super().__init__(timeout=60)
         self.roll_number = roll_number
+        self.roller_id = roller_id
     
     @discord.ui.button(label="Throw Pokeball", style=discord.ButtonStyle.blurple)
     async def throwpokeball(self, interaction: discord.Interaction, Button: discord.ui.Button):
