@@ -1,3 +1,4 @@
+import os
 import discord
 from discord.ext import commands
 import random
@@ -178,9 +179,9 @@ class Gacha(commands.Cog):
             
             ### IF NO ARGS OR MORE THAN 2 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) == 0:
-                await ctx.send("Insufficient parameters. Please provide the name of the new achievement in quotes and (optional) an achievement ID.")
+                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addachievement \"[Name of Achievement]\" [(optional)Achievement ID]`\nExample: `!addachievement \"Stay (Stray Kids Stan)\"`")
             elif len(args) > 2:
-                await ctx.send("Too many parameters. Please provide the name of the new achievement in quotes and (optional) an achievement ID.")
+                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addachievement \"[Name of Achievement]\" [(optional)Achievement ID]`\nExample: `!addachievement \"Stay (Stray Kids Stan)\"`")
             
             ### IF AT LEAST 1 ARG, ADD ACHIEVEMENT TO DATABASE ###
             else:
@@ -225,9 +226,9 @@ class Gacha(commands.Cog):
             
             ### IF LESS THAN 2 ARGS OR MORE THAN 4 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) < 2:
-                await ctx.send("Insufficient parameters. Please provide the name of the new group in quotes, the filename of the group's logo, (optional) an achievement ID to associate the group with, and (optional) a group ID.")
+                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Achievement ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
             elif len(args) > 4:
-                await ctx.send("Too many parameters. Please provide the name of the new group in quotes, the filename of the group's logo, (optional) an achievement ID to associate the group with, and (optional) a group ID.")
+                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Achievement ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
             
             ### IF AT LEAST 2 ARGS, ADD GROUP TO DATABASE ###
             else:
@@ -280,14 +281,15 @@ class Gacha(commands.Cog):
             
             ### IF LESS THAN 2 ARGS OR MORE THAN 4 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) < 2:
-                await ctx.send("Insufficient parameters. Please provide the name of the new idol in quotes, the filename of the idol's image, (optional) the group ID the idol is in, and (optional) an idol ID.")
+                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID] [(optional)Idol ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
             elif len(args) > 4:
-                await ctx.send("Too many parameters. Please provide the name of the new idol in quotes, the filename of the idol's image, (optional) the group ID the idol is in, and (optional) an idol ID.")
+                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID] [(optional)Idol ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
             
             ### IF AT LEAST 2 ARGS, ADD IDOL TO DATABASE ###
             else:
                 new_idol_name = args[0]
                 new_idol_image = args[1]
+                
                 connection = sqlite3.connect("./cogs/idol_gacha.db")
                 cursor = connection.cursor()
                 cursor.execute("""INSERT INTO Idols (idol_name, idol_image)
@@ -319,21 +321,6 @@ class Gacha(commands.Cog):
                 cursor.execute("""INSERT INTO GroupMembers (idol_id, group_id, active)
                                 Values (:new_idol_id, :new_idol_group_id, TRUE)""",
                                 {'new_idol_id': new_idol_id,'new_idol_group_id': new_idol_group_id})
-                
-                '''
-                ### CONFIRMATION MESSAGE ###
-                cursor.execute("""SELECT * FROM Idols
-                                WHERE idol_id = :new_idol_id""",
-                                {'new_idol_id': new_idol_id})
-                new_idol = cursor.fetchone()
-                cursor.execute("""SELECT * FROM GroupMembers
-                                WHERE idol_id = :new_idol_id
-                                AND group_id = :new_idol_group_id""",
-                          {'new_idol_id': new_idol_id, 'new_idol_group_id': new_idol_group_id})
-                new_groupmember = cursor.fetchone()
-
-                await ctx.send(f"{new_idol} has successfully been added to Idols. {new_groupmember} has successfully been added to Group Members.")
-                '''
 
                 ### BUILD NEW IDOL CARD ###
                 cursor.execute("""SELECT * FROM Groups
@@ -347,25 +334,30 @@ class Gacha(commands.Cog):
                 new_idol_group_name = new_idol_group[1]
                 new_idol_group_logo = new_idol_group[2]
 
+                if not os.path.exists(f"./cogs/gacha_images/idols/{new_idol_image}"):
+                    print(f"Error: Idol image file not found: ./cogs/gacha_images/idols/{new_idol_image}")
+                    return
+                if new_idol_group_logo and not os.path.exists(f"./cogs/gacha_images/logos/{new_idol_group_logo}"):
+                    print(f"Error: Group logo file not found: ./cogs/gacha_images/logos/{new_idol_group_logo}")
+                    return
                 uploaded_new_idol_image = discord.File(f"./cogs/gacha_images/idols/{new_idol_image}", filename=new_idol_image)
-                if new_idol_group_logo is not None:
+                if new_idol_group_logo:
                     uploaded_new_idol_group_logo = discord.File(f"./cogs/gacha_images/logos/{new_idol_group_logo}", filename=new_idol_group_logo)
 
-                card = discord.Embed(title=new_idol_name, description=new_idol_group_name, color=discord.Color.green())
-                if new_idol_group_logo is not None:
-                    card.set_thumbnail(url=f"attachment://{new_idol_group_logo}")
-                card.set_image(url=f"attachment://{new_idol_image}")
-                card.set_footer(text=f"New idol added by {ctx.author.name}", icon_url=ctx.author.avatar)
-                card.add_field(
-                    name=f"{new_idol_name} successfully added!",
-                    inline=False
-                )
-
                 ### DISPLAY NEW IDOL CARD WITHOUT CATCH BUTTON ###
-                if new_idol_group_logo is None:
-                    await ctx.send(files=[uploaded_new_idol_image], embed=card)
-                else:
+                card = discord.Embed(title=new_idol_name, description=new_idol_group_name, color=discord.Color.green())
+                if new_idol_group_logo:
+                    card.set_thumbnail(url=f"attachment://{new_idol_group_logo}")
+                card.set_footer(text=f"New idol added by {ctx.author.name}", icon_url=ctx.author.avatar)
+                card.set_image(url=f"attachment://{new_idol_image}")
+                card.add_field(name=f"{new_idol_name} successfully added!", value="New idol has been added to the database.", inline=False)
+
+                try:
                     await ctx.send(files=[uploaded_new_idol_image, uploaded_new_idol_group_logo], embed=card)
+                    print("New idol card sent successfully")
+                except Exception as e:
+                    print(f"Error while sending new idol card: {e}")
+
             
                 connection.commit()
                 connection.close()
