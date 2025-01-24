@@ -256,11 +256,41 @@ class Gacha(commands.Cog):
                 
                 ### CONFIRMATION MESSAGE ###
                 cursor.execute("""SELECT * FROM Groups
-                          WHERE group_name = :new_group_name""",
-                          {'new_group_name': new_group_name})
+                                WHERE group_name = :new_group_name""",
+                                {'new_group_name': new_group_name})
                 new_group = cursor.fetchone()
+                #await ctx.send(f"{new_group} has successfully been added to Groups.")
 
-                await ctx.send(f"{new_group} has successfully been added to Groups.")
+                new_group_name = new_group[1]
+                new_group_logo = new_group[2]
+                new_group_id = new_group[0]
+                new_group_achievement_id = new_group[3]
+                #print(f"new_group_name: {new_group_name}")
+                #print(f"new_group_logo: {new_group_logo}")
+                #print(f"new_group_id: {new_group_id}")
+                #print(f"new_group_achievement_id: {new_group_achievement_id}")
+                if new_group_achievement_id:
+                    cursor.execute("""SELECT achievement_name FROM AchievementList
+                                    WHERE achievement_id = :new_group_achievement_id""",
+                                    {'new_group_achievement_id': new_group_achievement_id})
+                    new_group_achievement = cursor.fetchone()[0]
+                else:
+                    new_group_achievement = None
+                #print(f"new_group_achievement: {new_group_achievement}")
+
+                ### BUILD NEW GROUP CONFIRMATION CARD ###
+                if new_group_logo and not os.path.exists(f"./cogs/gacha_images/logos/{new_group_logo}"):
+                    print(f"Error: Group logo file not found: ./cogs/gacha_images/logos/{new_group_logo}")
+                    return
+                uploaded_new_group_logo = discord.File(f"./cogs/gacha_images/logos/{new_group_logo}", filename=new_group_logo)
+                
+                #print("creating embed")
+                card = discord.Embed(title=new_group_name, description="has been added to Groups.", color=discord.Color.green())
+                #await ctx.send(embed=card)
+                card.set_footer(text=f"New group added by {ctx.author.name}", icon_url=ctx.author.avatar)
+                card.set_thumbnail(url=f"attachment://{new_group_logo}")
+                card.add_field(name=f"Group ID: {new_group_id}", value=f"Achievement: {new_group_achievement}", inline=False)
+                await ctx.send(files=[uploaded_new_group_logo], embed=card)
             
                 connection.commit()
                 connection.close()
