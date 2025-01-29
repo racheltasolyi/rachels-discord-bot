@@ -190,7 +190,7 @@ class Gacha(commands.Cog):
             connection.close()
     
     ### !RESETGACHA ADMIN COMMAND: RESET GACHA GAME ###
-    @commands.command()
+    @commands.command(aliases=["rg"])
     async def resetgacha(self, ctx):
 
         ### CHECK IF USER IS ADMIN ###

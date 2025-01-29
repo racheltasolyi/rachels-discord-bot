@@ -4,7 +4,7 @@
   - **!gacha [x] | !g**: Admin only. Rolls the idol whose Idol ID matches [x]
 - **!release [x] | !r**: Releases the idol named [x] from user's party
   - Spelling and Capitalization must match database
-- **!resetgacha**: Admin only. Releases all caught idols back into the wild
+- **!resetgacha | !rg**: Admin only. Releases all caught idols back into the wild
 - **!addachievement "[x]" | !newachievement "[x]"**: Admin only. Adds a new achievement named [x] to the database
   - Optional 2nd argument for the new achievement's ID
 - **!addgroup "[x]" "[x.jpg]" (a) (g) | !newgroup | !addg | !newg**: Admin only. Adds a new group named [x] to the database with the logo file [x.jpg]
