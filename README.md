@@ -1,14 +1,16 @@
 ## Idol Gacha Commands
 - **!gacha | !g**: Rolls a random idol card that you can catch with a Pokeball
   - Idols can only be caught by the user who rolled them
-  - **!gacha [x] | !g [x]**: Admin only. Rolls the idol whose Idol ID matches [x]
-- **!resetgacha**: Admin only. Releases all caught idols back into the wild
+  - **!gacha [x] | !g**: Admin only. Rolls the idol whose Idol ID matches [x]
+- **!release [x] | !r**: Releases the idol named [x] from user's party
+  - Spelling and Capitalization must match database
+- **!resetgacha | !rg**: Admin only. Releases all caught idols back into the wild
 - **!addachievement "[x]" | !newachievement "[x]"**: Admin only. Adds a new achievement named [x] to the database
   - Optional 2nd argument for the new achievement's ID
-- **!addgroup "[x]" "[x.jpg]" [a] [g] | !newgroup | !addg | !newg**: Admin only. Adds a new group named [x] to the database with the logo file [x.jpg]
+- **!addgroup "[x]" "[x.jpg]" (a) (g) | !newgroup | !addg | !newg**: Admin only. Adds a new group named [x] to the database with the logo file [x.jpg]
   - Optional 3rd argument for the new group's associated achievement_id
   - Optional 4th argument for the new group's ID
-- **!addidol "[x]" "[x.jpg]" [g] [i] | !newidol | !addi | !newi**: Admin only. Adds a new idol named [x] to the database with the image file [x.jpg]
+- **!addidol "[x]" "[x.jpg]" (g) (i) | !newidol | !addi | !newi**: Admin only. Adds a new idol named [x] to the database with the image file [x.jpg]
   - Optional 3rd argument for the new idol's group ID [g] (leave blank for Soloist)
   - Optional 4th argument for the new idol's ID [i]
 
