@@ -2,7 +2,6 @@ import os
 import discord
 from discord.ext import commands
 import random
-import json
 import sqlite3
 
 class Gacha(commands.Cog):
@@ -140,7 +139,57 @@ class Gacha(commands.Cog):
         connection.commit()
         connection.close()
     
-    ### ADMIN COMMAND: RESET GACHA GAME ###
+    ### !RELEASE COMMAND: RELEASE SPECIFIED IDOL ###
+    @commands.command(aliases=["r"])
+    async def release(self, ctx, *, arg: str = None):
+
+        ### IF NO ARGS, DISPLAY CORRECT SYNTAX ###
+        if arg is None:
+            await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!release \"[Name of Idol]\"`\nExample: `!release \"Lee Know\"`")
+
+        ### CHECK IF THE IDOL IS OWNED BY USER ###
+        else:
+            connection = sqlite3.connect("./cogs/idol_gacha.db")
+            cursor = connection.cursor()
+            cursor.execute("""SELECT * FROM Idols
+                            WHERE (idol_name = :arg AND player_id = :user_id)""",
+                            {'arg': arg, 'user_id': ctx.author.id})
+            idol = cursor.fetchall()
+
+            ### ERROR HANDLING ###
+            if len(idol) == 0 or len(idol) > 1:
+
+                ### ERROR MESSAGE IF MORE THAN 1 IDOL ARE FOUND IN PARTY ###
+                if len(idol) > 1:
+                    await ctx.send(f"Multiple idols named {arg} were found in your party. Please contact admin SoulDaiDa for assistance.")
+
+                else:
+                    cursor.execute("""SELECT * FROM Idols
+                                    WHERE idol_name = :arg""",
+                                    {'arg': arg})
+                    idol = cursor.fetchall()
+                    
+                    ### ERROR MESSAGE IF IDOL DOES NOT EXIST ###
+                    if len(idol) == 0:
+                        await ctx.send(f"No idols named {arg} can be found. Please check spelling and capitalization.")
+                
+                    ### ERROR MESSAGE IF USER DOES NOT OWN IDOL ###
+                    elif idol[0][3] != ctx.author.id:
+                        await ctx.send(f"{arg} is not in your party.")
+
+            ### RELEASE THE IDOL BACK INTO THE WILD ###
+            else:
+                release_idol_id = idol[0][0]
+                cursor.execute("""UPDATE Idols SET player_id = 0
+                                WHERE idol_id == :release_idol_id""",
+                                {'release_idol_id': release_idol_id})
+                
+                await ctx.send(f"{arg} has been released from your party.")
+
+            connection.commit()
+            connection.close()
+    
+    ### !RESETGACHA ADMIN COMMAND: RESET GACHA GAME ###
     @commands.command()
     async def resetgacha(self, ctx):
 
@@ -167,7 +216,7 @@ class Gacha(commands.Cog):
         else:
             await ctx.send("You do not have permission for this command.")
     
-    ### ADMIN COMMAND: ADD NEW ACHIEVEMENT ###
+    ### !ADDACHIEVEMENT ADMIN COMMAND: ADD NEW ACHIEVEMENT ###
     @commands.command(aliases=["newachievement", "adda", "newa"])
     async def addachievement(self, ctx, *args):
 
@@ -214,7 +263,7 @@ class Gacha(commands.Cog):
         else:
             await ctx.send("You do not have permission for this command.")
     
-    ### ADMIN COMMAND: ADD NEW GROUP ###
+    ### !ADDGROUP ADMIN COMMAND: ADD NEW GROUP ###
     @commands.command(aliases=["newgroup", "addg", "newg"])
     async def addgroup(self, ctx, *args):
 
@@ -299,7 +348,7 @@ class Gacha(commands.Cog):
         else:
             await ctx.send("You do not have permission for this command.")
     
-    ### ADMIN COMMAND: ADD NEW IDOL ###
+    ### !ADDIDOL ADMIN COMMAND: ADD NEW IDOL ###
     @commands.command(aliases=["newidol", "addi", "newi"])
     async def addidol(self, ctx, *args):
 
