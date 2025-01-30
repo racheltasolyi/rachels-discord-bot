@@ -77,4 +77,5 @@
 2. `git checkout -b [new-branch-name] [old-branch-name]` to create and move to the new branch
    - The new branch becomes a child of the old branch
    - Can leave out `checkout` to create the new branch but stay on the old branch
-3. Can `git stash pop` to reapply changes to the new branch
+3. Can `git stash pop` to reapply changes to the new branch (and delete the stash)
+   - `git stash apply` to reapply changes without deleting the stash

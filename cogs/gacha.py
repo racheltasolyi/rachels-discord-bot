@@ -28,7 +28,7 @@ class Gacha(commands.Cog):
             if (roller_id == adminid):
                 roll_number = arg
             else:
-                await ctx.send("You do not have permission for this command.")
+                await ctx.send("ERROR: You do not have permission for this command.")
                 return
 
         ### DETERMINE ROLL NUMBER ###
@@ -60,7 +60,7 @@ class Gacha(commands.Cog):
                         {'roll_number': roll_number})
         roll = cursor.fetchone()
         if roll is None:
-            await ctx.send("The rolled idol does not exist.")
+            await ctx.send("ERROR: The rolled idol does not exist.")
             return
         cursor.execute("""SELECT group_id FROM GroupMembers
                           WHERE idol_id = :roll_number""",
@@ -68,7 +68,7 @@ class Gacha(commands.Cog):
         roll_group_id = cursor.fetchone()
         #print(roll_group_id)
         if roll_group_id is None:
-            await ctx.send("The rolled idol's Group ID does not exist.")
+            await ctx.send("ERROR: The rolled idol's Group ID does not exist.")
             return
         cursor.execute("""SELECT * FROM Groups
                           WHERE group_id = :roll_group_id""",
@@ -76,7 +76,7 @@ class Gacha(commands.Cog):
         roll_group = cursor.fetchone()
         #print(roll_group)
         if roll_group is None:
-            await ctx.send("The rolled idol's Group does not exist.")
+            await ctx.send("ERROR: The rolled idol's Group does not exist.")
             return
         #print("Got card data!")
 
@@ -145,7 +145,7 @@ class Gacha(commands.Cog):
 
         ### IF NO ARGS, DISPLAY CORRECT SYNTAX ###
         if arg is None:
-            await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!release \"[Name of Idol]\"`\nExample: `!release \"Lee Know\"`")
+            await ctx.send("ERROR: Insufficient parameters.\nPlease use the following syntax:\n`!release \"[Name of Idol]\"`\nExample: `!release \"Lee Know\"`")
 
         ### CHECK IF THE IDOL IS OWNED BY USER ###
         else:
@@ -161,7 +161,7 @@ class Gacha(commands.Cog):
 
                 ### ERROR MESSAGE IF MORE THAN 1 IDOL ARE FOUND IN PARTY ###
                 if len(idol) > 1:
-                    await ctx.send(f"Multiple idols named {arg} were found in your party. Please contact admin SoulDaiDa for assistance.")
+                    await ctx.send(f"ERROR: Multiple idols named {arg} were found in your party. Please contact admin SoulDaiDa for assistance.")
 
                 else:
                     cursor.execute("""SELECT * FROM Idols
@@ -171,11 +171,11 @@ class Gacha(commands.Cog):
                     
                     ### ERROR MESSAGE IF IDOL DOES NOT EXIST ###
                     if len(idol) == 0:
-                        await ctx.send(f"No idols named {arg} can be found. Please check spelling and capitalization.")
+                        await ctx.send(f"ERROR: No idols named {arg} can be found. Please check spelling and capitalization.")
                 
                     ### ERROR MESSAGE IF USER DOES NOT OWN IDOL ###
                     elif idol[0][3] != ctx.author.id:
-                        await ctx.send(f"{arg} is not in your party.")
+                        await ctx.send(f"ERROR: {arg} is not in your party.")
 
             ### RELEASE THE IDOL BACK INTO THE WILD ###
             else:
@@ -184,7 +184,7 @@ class Gacha(commands.Cog):
                                 WHERE idol_id == :release_idol_id""",
                                 {'release_idol_id': release_idol_id})
                 
-                await ctx.send(f"{arg} has been released from your party.")
+                await ctx.send(f"{arg} has successfully been released from your party.")
 
             connection.commit()
             connection.close()
@@ -208,13 +208,13 @@ class Gacha(commands.Cog):
             cursor.execute("""UPDATE Idols SET player_id = 0
                               WHERE (player_id IS NOT NULL AND player_id != 0)""")
 
-            await ctx.send("Gacha has been reset.")
+            await ctx.send("Gacha has successfully been reset.")
             connection.commit()
             connection.close()
         
         ### FAIL IF USER IS NOT ADMIN ###
         else:
-            await ctx.send("You do not have permission for this command.")
+            await ctx.send("ERROR: You do not have permission for this command.")
     
     ### !ADDACHIEVEMENT ADMIN COMMAND: ADD NEW ACHIEVEMENT ###
     @commands.command(aliases=["newachievement", "adda", "newa"])
@@ -227,14 +227,18 @@ class Gacha(commands.Cog):
         if (ctx.author.id == adminid):
             
             ### IF NO ARGS OR MORE THAN 2 ARGS, DISPLAY CORRECT SYNTAX ###
+            print(len(args))
+            print(args[0])
+            print(args[1])
             if len(args) == 0:
-                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addachievement \"[Name of Achievement]\" [(optional)Achievement ID]`\nExample: `!addachievement \"Stay (Stray Kids Stan)\"`")
+                await ctx.send("ERROR: Insufficient parameters.\nPlease use the following syntax:\n`!addachievement \"[Name of Achievement]\" [(optional)Achievement ID]`\nExample: `!addachievement \"Stay (Stray Kids Stan)\"`")
             elif len(args) > 2:
-                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addachievement \"[Name of Achievement]\" [(optional)Achievement ID]`\nExample: `!addachievement \"Stay (Stray Kids Stan)\"`")
+                await ctx.send("ERROR: Too many parameters.\nPlease use the following syntax:\n`!addachievement \"[Name of Achievement]\" [(optional)Achievement ID]`\nExample: `!addachievement \"Stay (Stray Kids Stan)\"`")
             
             ### IF AT LEAST 1 ARG, ADD ACHIEVEMENT TO DATABASE ###
             else:
                 new_achievement_name = args[0]
+                print(new_achievement_name)
                 connection = sqlite3.connect("./cogs/idol_gacha.db")
                 cursor = connection.cursor()
                 cursor.execute("""INSERT INTO AchievementList (achievement_name)
@@ -243,15 +247,32 @@ class Gacha(commands.Cog):
                 
                 ### IF 2 ARGS, UPDATE ACHIEVEMENT ID TO SPECIFIED NUMBER ###
                 if len(args) == 2:
-                    new_achievement_id = args[1]
-                    cursor.execute("""UPDATE AchievementList SET achievement_id = :new_achievement_id
-                              WHERE achievement_name = :new_achievement_name""",
-                              {'new_achievement_id': new_achievement_id,'new_achievement_name': new_achievement_name})
+                    new_achievement_id = int(args[1])
+                    print(new_achievement_id)
+                    cursor.execute("""SELECT * FROM AchievementList
+                                    WHERE achievement_id = :new_achievement_id""",
+                                    {'new_achievement_id': new_achievement_id})
+                    achievement_id_check = cursor.fetchone()
+                    print(achievement_id_check)
+                    
+                    if (achievement_id_check is None or achievement_id_check[1] == new_achievement_name):
+                        print(achievement_id_check)
+                        cursor.execute("""UPDATE AchievementList SET achievement_id = :new_achievement_id
+                                        WHERE achievement_name = :new_achievement_name""",
+                                        {'new_achievement_id': new_achievement_id,'new_achievement_name': new_achievement_name})
+                    
+                    ### FAIL IF AN ACHIEVEMENT ALREADY EXISTS AT THAT ID ###
+                    else:
+                        await ctx.send(f"ERROR: ID #{new_achievement_id} already belongs to the achievement {achievement_id_check[1]}")
+                        connection.rollback()
+                        connection.close()
+                        return
+
                 
                 ### CONFIRMATION MESSAGE ###
                 cursor.execute("""SELECT * FROM AchievementList
-                          WHERE achievement_name = :new_achievement_name""",
-                          {'new_achievement_name': new_achievement_name})
+                                WHERE achievement_name = :new_achievement_name""",
+                                {'new_achievement_name': new_achievement_name})
                 new_achievement = cursor.fetchone()
 
                 await ctx.send(f"{new_achievement} has successfully been added to Achievements.")
@@ -261,7 +282,7 @@ class Gacha(commands.Cog):
         
         ### FAIL IF USER IS NOT ADMIN ###
         else:
-            await ctx.send("You do not have permission for this command.")
+            await ctx.send("ERROR: You do not have permission for this command.")
     
     ### !ADDGROUP ADMIN COMMAND: ADD NEW GROUP ###
     @commands.command(aliases=["newgroup", "addg", "newg"])
@@ -275,9 +296,9 @@ class Gacha(commands.Cog):
             
             ### IF LESS THAN 2 ARGS OR MORE THAN 4 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) < 2:
-                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Achievement ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
+                await ctx.send("ERROR: Insufficient parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Achievement ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
             elif len(args) > 4:
-                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Achievement ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
+                await ctx.send("ERROR: Too many parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Achievement ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
             
             ### IF AT LEAST 2 ARGS, ADD GROUP TO DATABASE ###
             else:
@@ -291,33 +312,39 @@ class Gacha(commands.Cog):
                 
                 ### IF AT LEAST 3 ARGS, UPDATE GROUP'S ACHIEVEMENT ID ###
                 if len(args) > 2:
-                    group_achievement_id = args[2]
+                    group_achievement_id = int(args[2])
                     cursor.execute("""UPDATE Groups SET achievement_id = :group_achievement_id
                               WHERE group_name = :new_group_name""",
                               {'group_achievement_id': group_achievement_id,'new_group_name': new_group_name})
                 
                     ### IF 4 ARGS, UPDATE GROUP'S ID ###
                     if len(args) == 4:
-                        new_group_id = args[3]
-                        cursor.execute("""UPDATE Groups SET group_id = :new_group_id
-                                WHERE group_name = :new_group_name""",
-                                {'new_group_id': new_group_id,'new_group_name': new_group_name})
+                        new_group_id = int(args[3])
+                        cursor.execute("""SELECT * FROM Groups
+                                        WHERE group_id = :new_group_id""",
+                                        {'new_group_id': new_group_id})
+                        group_id_check = cursor.fetchone()
+                        
+                        if (group_id_check is None):
+                            cursor.execute("""UPDATE Groups SET group_id = :new_group_id
+                                            WHERE group_name = :new_group_name""",
+                                            {'new_group_id': new_group_id,'new_group_name': new_group_name})
+                        
+                        ### FAIL IF A GROUP ALREADY EXISTS AT THAT ID ###
+                        else:
+                            await ctx.send(f"ERROR: ID #{new_group_id} already belongs to the group {group_id_check[1]}")
+                            return
                 
                 ### CONFIRMATION MESSAGE ###
                 cursor.execute("""SELECT * FROM Groups
                                 WHERE group_name = :new_group_name""",
                                 {'new_group_name': new_group_name})
                 new_group = cursor.fetchone()
-                #await ctx.send(f"{new_group} has successfully been added to Groups.")
 
                 new_group_name = new_group[1]
                 new_group_logo = new_group[2]
                 new_group_id = new_group[0]
                 new_group_achievement_id = new_group[3]
-                #print(f"new_group_name: {new_group_name}")
-                #print(f"new_group_logo: {new_group_logo}")
-                #print(f"new_group_id: {new_group_id}")
-                #print(f"new_group_achievement_id: {new_group_achievement_id}")
                 if new_group_achievement_id:
                     cursor.execute("""SELECT achievement_name FROM AchievementList
                                     WHERE achievement_id = :new_group_achievement_id""",
@@ -325,16 +352,15 @@ class Gacha(commands.Cog):
                     new_group_achievement = cursor.fetchone()[0]
                 else:
                     new_group_achievement = None
-                #print(f"new_group_achievement: {new_group_achievement}")
 
                 ### BUILD NEW GROUP CONFIRMATION CARD ###
                 if new_group_logo and not os.path.exists(f"./cogs/gacha_images/logos/{new_group_logo}"):
-                    print(f"Error: Group logo file not found: ./cogs/gacha_images/logos/{new_group_logo}")
+                    print(f"ERROR: Group logo file not found: ./cogs/gacha_images/logos/{new_group_logo}")
                     return
                 uploaded_new_group_logo = discord.File(f"./cogs/gacha_images/logos/{new_group_logo}", filename=new_group_logo)
                 
                 #print("creating embed")
-                card = discord.Embed(title=new_group_name, description="has been added to Groups.", color=discord.Color.green())
+                card = discord.Embed(title=new_group_name, description="has successfully been added to Groups.", color=discord.Color.green())
                 #await ctx.send(embed=card)
                 card.set_footer(text=f"New group added by {ctx.author.name}", icon_url=ctx.author.avatar)
                 card.set_thumbnail(url=f"attachment://{new_group_logo}")
@@ -346,7 +372,7 @@ class Gacha(commands.Cog):
         
         ### FAIL IF USER IS NOT ADMIN ###
         else:
-            await ctx.send("You do not have permission for this command.")
+            await ctx.send("ERROR: You do not have permission for this command.")
     
     ### !ADDIDOL ADMIN COMMAND: ADD NEW IDOL ###
     @commands.command(aliases=["newidol", "addi", "newi"])
@@ -360,9 +386,9 @@ class Gacha(commands.Cog):
             
             ### IF LESS THAN 2 ARGS OR MORE THAN 4 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) < 2:
-                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID] [(optional)Idol ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
+                await ctx.send("ERROR: Insufficient parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID] [(optional)Idol ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
             elif len(args) > 4:
-                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID] [(optional)Idol ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
+                await ctx.send("ERROR: Too many parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID] [(optional)Idol ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
             
             ### IF AT LEAST 2 ARGS, ADD IDOL TO DATABASE ###
             else:
@@ -407,17 +433,17 @@ class Gacha(commands.Cog):
                                 {'new_idol_group_id': new_idol_group_id})
                 new_idol_group = cursor.fetchone()
                 if new_idol_group is None:
-                    await ctx.send("The new idol's Group does not exist.")
+                    await ctx.send("ERROR: The new idol's Group does not exist.")
                     return
                 
                 new_idol_group_name = new_idol_group[1]
                 new_idol_group_logo = new_idol_group[2]
 
                 if not os.path.exists(f"./cogs/gacha_images/idols/{new_idol_image}"):
-                    print(f"Error: Idol image file not found: ./cogs/gacha_images/idols/{new_idol_image}")
+                    print(f"ERROR: Idol image file not found: ./cogs/gacha_images/idols/{new_idol_image}")
                     return
                 if new_idol_group_logo and not os.path.exists(f"./cogs/gacha_images/logos/{new_idol_group_logo}"):
-                    print(f"Error: Group logo file not found: ./cogs/gacha_images/logos/{new_idol_group_logo}")
+                    print(f"ERROR: Group logo file not found: ./cogs/gacha_images/logos/{new_idol_group_logo}")
                     return
                 uploaded_new_idol_image = discord.File(f"./cogs/gacha_images/idols/{new_idol_image}", filename=new_idol_image)
                 if new_idol_group_logo:
@@ -443,7 +469,7 @@ class Gacha(commands.Cog):
         
         ### FAIL IF USER IS NOT ADMIN ###
         else:
-            await ctx.send("You do not have permission for this command.")
+            await ctx.send("ERROR: You do not have permission for this command.")
 
 ### BUTTON TO CATCH IDOLS ###
 class GachaButtonMenu(discord.ui.View):
