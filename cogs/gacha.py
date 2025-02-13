@@ -28,7 +28,7 @@ class Gacha(commands.Cog):
             if (roller_id == adminid):
                 roll_number = arg
             else:
-                await ctx.send("You do not have permission for this command.")
+                await ctx.send("ERROR: You do not have permission for this command.")
                 return
 
         ### DETERMINE ROLL NUMBER ###
@@ -60,23 +60,23 @@ class Gacha(commands.Cog):
                         {'roll_number': roll_number})
         roll = cursor.fetchone()
         if roll is None:
-            await ctx.send("The rolled idol does not exist.")
+            await ctx.send("ERROR: The rolled idol does not exist.")
             return
         cursor.execute("""SELECT group_id FROM GroupMembers
                           WHERE idol_id = :roll_number""",
                         {'roll_number': roll_number})
-        roll_group_id = cursor.fetchone()
+        roll_group_id = cursor.fetchone()[0]
         #print(roll_group_id)
         if roll_group_id is None:
-            await ctx.send("The rolled idol's Group ID does not exist.")
+            await ctx.send("ERROR: The rolled idol's Group ID does not exist.")
             return
         cursor.execute("""SELECT * FROM Groups
                           WHERE group_id = :roll_group_id""",
-                        {'roll_group_id': roll_group_id[0]})
+                        {'roll_group_id': roll_group_id})
         roll_group = cursor.fetchone()
         #print(roll_group)
         if roll_group is None:
-            await ctx.send("The rolled idol's Group does not exist.")
+            await ctx.send("ERROR: The rolled idol's Group does not exist.")
             return
         #print("Got card data!")
 
@@ -145,7 +145,8 @@ class Gacha(commands.Cog):
 
         ### IF NO ARGS, DISPLAY CORRECT SYNTAX ###
         if arg is None:
-            await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!release \"[Name of Idol]\"`\nExample: `!release \"Lee Know\"`")
+            await ctx.send("ERROR: Insufficient parameters.\nPlease use the following syntax:\n`!release \"[Name of Idol]\"`\nExample: `!release \"Lee Know\"`")
+            return
 
         ### CHECK IF THE IDOL IS OWNED BY USER ###
         else:
@@ -161,7 +162,8 @@ class Gacha(commands.Cog):
 
                 ### ERROR MESSAGE IF MORE THAN 1 IDOL ARE FOUND IN PARTY ###
                 if len(idol) > 1:
-                    await ctx.send(f"Multiple idols named {arg} were found in your party. Please contact admin SoulDaiDa for assistance.")
+                    await ctx.send(f"ERROR: Multiple idols named {arg} were found in your party. Please contact admin SoulDaiDa for assistance.")
+                    return
 
                 else:
                     cursor.execute("""SELECT * FROM Idols
@@ -171,11 +173,13 @@ class Gacha(commands.Cog):
                     
                     ### ERROR MESSAGE IF IDOL DOES NOT EXIST ###
                     if len(idol) == 0:
-                        await ctx.send(f"No idols named {arg} can be found. Please check spelling and capitalization.")
+                        await ctx.send(f"ERROR: No idols named {arg} can be found. Please check spelling and capitalization.")
+                        return
                 
                     ### ERROR MESSAGE IF USER DOES NOT OWN IDOL ###
                     elif idol[0][3] != ctx.author.id:
-                        await ctx.send(f"{arg} is not in your party.")
+                        await ctx.send(f"ERROR: {arg} is not in your party.")
+                        return
 
             ### RELEASE THE IDOL BACK INTO THE WILD ###
             else:
@@ -189,6 +193,128 @@ class Gacha(commands.Cog):
             connection.commit()
             connection.close()
     
+    ### !PROFILE COMMAND: DISPLAY PLAYER'S PROFILE CARD ###
+    @commands.command(aliases=["pf"])
+    async def profile(self, ctx):
+
+        player_id = ctx.author.id
+
+        ### FETCH PLAYER FROM DB ###
+        connection = sqlite3.connect("./cogs/idol_gacha.db")
+        cursor = connection.cursor()
+        #print("connection made")
+
+        cursor.execute("""SELECT * FROM Players
+                          WHERE player_id = :player_id""",
+                        {'player_id': player_id})
+        player = cursor.fetchone()
+        
+        ### IF PLAYER IS NEW, THROW ERROR (LATER: ADD NEW PLAYER TO DATABASE) ###
+        if player is None:
+            # should create new helper function to create new player?
+            await ctx.send("ERROR: Player not found. Use `!gacha` to start the game and catch your first idol!")
+            return
+
+        ### FETCH ALL OF PLAYER'S IDOLS ###
+        cursor.execute("""SELECT * FROM Idols
+                          WHERE player_id = :player_id""",
+                        {'player_id': player_id})
+        idol_list = cursor.fetchall()
+        #print(idol_list)
+
+        ### FETCH PLAYER'S ACTIVE TITLE & LOGO ###
+        cursor.execute("""SELECT achievement_id FROM CompletedAchievements
+                          WHERE (player_id = :player_id AND active_title = 1)""",
+                        {'player_id': player_id})
+        active_title_id = cursor.fetchone()[0]
+        #print(active_title_id)
+        cursor.execute("""SELECT achievement_name FROM AchievementList
+                          WHERE achievement_id = :active_title_id""",
+                        {'active_title_id': active_title_id})
+        active_title_name = cursor.fetchone()[0]
+        if active_title_name is None:
+            active_title_name = "Trainee"
+        #print(active_title_name)
+
+        cursor.execute("""SELECT group_logo FROM Groups
+                          WHERE achievement_id = :active_title_id""",
+                        {'active_title_id': active_title_id})
+        active_logo = cursor.fetchone()
+        if active_logo:
+            active_logo = active_logo[0]
+            #print(active_logo)
+
+        ### FETCH ALL OF PLAYER'S TITLES ###
+        cursor.execute("""SELECT achievement_id FROM CompletedAchievements
+                          WHERE (player_id = :player_id AND active_title = 0)""",
+                        {'player_id': player_id})
+        title_id_list = cursor.fetchall()
+        #print(title_id_list)
+
+        ### FETCH PLAYER'S CHOSEN IDOL IMAGE ###
+        if (len(idol_list) > 0):
+            active_idol = idol_list[0]
+            active_idol_image = active_idol[2]
+            #print(active_idol_image)
+
+        ### BUILD PLAYER PROFILE CARD ###
+        if (len(idol_list) > 0):
+            uploaded_active_idol_image = discord.File(f"./cogs/gacha_images/idols/{active_idol_image}", filename=active_idol_image)
+        if active_logo is not None:
+            uploaded_active_logo = discord.File(f"./cogs/gacha_images/logos/{active_logo}", filename=active_logo)
+        
+        card = discord.Embed(title=f"{ctx.author.name}'s Idol Catcher Profile", description=f"### {active_title_name}", color=discord.Color.green())
+        if active_logo is not None:
+            card.set_thumbnail(url=f"attachment://{active_logo}")
+        else:
+            card.set_thumbnail(url=ctx.author.avatar)
+        if (len(idol_list) > 0):
+            card.set_image(url=f"attachment://{active_idol_image}")
+
+        title_list = ""
+        for title in title_id_list:
+            cursor.execute("""SELECT achievement_name FROM AchievementList
+                            WHERE achievement_id = :title_id""",
+                            {'title_id': title[0]})
+            title_name = cursor.fetchone()[0]
+            title_list += f"* {title_name}\n"
+            #print(title_list)
+        card.add_field(
+            name=f"\n{ctx.author.name}'s Titles:",
+            value=title_list,
+            inline=False
+        )
+
+        party_list = ""
+        for idol in idol_list:
+            if idol[0] < 10:
+                #spaces = " " #n-space
+                #spaces = "⠀" #braille blank
+                spaces = " " #figure space (numerical digits) U+2007
+            elif idol[0] >= 10 and idol[0] <100:
+                spaces = ""
+            party_list += "`" + spaces + f"{idol[0]}` {idol[1]}\n"
+        if (len(idol_list) == 0):
+            party_list = "Party is empty -- Use `!gacha` to catch an idol!"
+        card.add_field(
+            name=f"\n{ctx.author.name}'s Party:",
+            value=party_list,
+            inline=False
+        )
+
+        #print("Embed created!")
+
+        ### DISPLAY PLAYER PROFILE CARD ###
+        if (len(idol_list) == 0) and active_logo is None:
+            await ctx.send(embed=card)
+        elif active_logo is None:
+            await ctx.send(files=[uploaded_active_idol_image], embed=card)
+        else:
+            await ctx.send(files=[uploaded_active_idol_image, uploaded_active_logo], embed=card)
+
+        connection.commit()
+        connection.close()
+
     ### !RESETGACHA ADMIN COMMAND: RESET GACHA GAME ###
     @commands.command(aliases=["rg"])
     async def resetgacha(self, ctx):
