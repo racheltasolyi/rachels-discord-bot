@@ -223,33 +223,32 @@ class Gacha(commands.Cog):
         #print(idol_list)
 
         ### FETCH PLAYER'S ACTIVE TITLE & LOGO ###
-        cursor.execute("""SELECT achievement_id FROM CompletedAchievements
-                          WHERE (player_id = :player_id AND active_title = 1)""",
+        cursor.execute("""SELECT COALESCE(AchievementList.achievement_name, 'Trainee') AS title_name, Groups.group_logo
+                        FROM CompletedAchievements
+                        INNER JOIN AchievementList ON CompletedAchievements.achievement_id = AchievementList.achievement_id
+                        LEFT JOIN Groups ON CompletedAchievements.achievement_id = Groups.achievement_id
+                        WHERE CompletedAchievements.player_id = :player_id 
+                        AND CompletedAchievements.active_title = 1""",
                         {'player_id': player_id})
-        active_title_id = cursor.fetchone()[0]
-        #print(active_title_id)
-        cursor.execute("""SELECT achievement_name FROM AchievementList
-                          WHERE achievement_id = :active_title_id""",
-                        {'active_title_id': active_title_id})
-        active_title_name = cursor.fetchone()[0]
-        if active_title_name is None:
+        active_title_query = cursor.fetchone()
+        if active_title_query is None:
             active_title_name = "Trainee"
-        #print(active_title_name)
-
-        cursor.execute("""SELECT group_logo FROM Groups
-                          WHERE achievement_id = :active_title_id""",
-                        {'active_title_id': active_title_id})
-        active_logo = cursor.fetchone()
-        if active_logo:
-            active_logo = active_logo[0]
-            #print(active_logo)
+            active_logo = None
+        else:
+            active_title_name = active_title_query[0]
+            active_logo = active_title_query[1]
 
         ### FETCH ALL OF PLAYER'S TITLES ###
-        cursor.execute("""SELECT achievement_id FROM CompletedAchievements
-                          WHERE (player_id = :player_id AND active_title = 0)""",
+        cursor.execute("""SELECT AchievementList.achievement_name
+                        FROM CompletedAchievements
+                        INNER JOIN AchievementList ON CompletedAchievements.achievement_id = AchievementList.achievement_id
+                        WHERE CompletedAchievements.player_id = :player_id 
+                        AND CompletedAchievements.active_title = 0""",
                         {'player_id': player_id})
-        title_id_list = cursor.fetchall()
-        #print(title_id_list)
+        title_list_query = cursor.fetchall()
+        title_list = ""
+        for title in title_list_query:
+            title_list += f"* {title[0]}\n"
 
         ### FETCH PLAYER'S CHOSEN IDOL IMAGE ###
         if (len(idol_list) > 0):
@@ -271,19 +270,12 @@ class Gacha(commands.Cog):
         if (len(idol_list) > 0):
             card.set_image(url=f"attachment://{active_idol_image}")
 
-        title_list = ""
-        for title in title_id_list:
-            cursor.execute("""SELECT achievement_name FROM AchievementList
-                            WHERE achievement_id = :title_id""",
-                            {'title_id': title[0]})
-            title_name = cursor.fetchone()[0]
-            title_list += f"* {title_name}\n"
-            #print(title_list)
-        card.add_field(
-            name=f"\n{ctx.author.name}'s Titles:",
-            value=title_list,
-            inline=False
-        )
+        if title_list_query:
+            card.add_field(
+                name=f"\n{ctx.author.name}'s Titles:",
+                value=title_list,
+                inline=False
+            )
 
         party_list = ""
         for idol in idol_list:
