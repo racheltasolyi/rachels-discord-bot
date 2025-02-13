@@ -197,9 +197,7 @@ class Gacha(commands.Cog):
     @commands.command(aliases=["pf"])
     async def profile(self, ctx):
 
-        #print("!gacha command called!")
         player_id = ctx.author.id
-        #print(f"roller_id = {roller_id}")
 
         ### FETCH PLAYER FROM DB ###
         connection = sqlite3.connect("./cogs/idol_gacha.db")
@@ -222,11 +220,7 @@ class Gacha(commands.Cog):
                           WHERE player_id = :player_id""",
                         {'player_id': player_id})
         idol_list = cursor.fetchall()
-
-        ### FAIL IF PLAYER HAS NO IDOLS ###
-        if (len(idol_list) == 0):
-            await ctx.send("ERROR: No idols found in player's party. Please have at least 1 idol in your party to see your player profile.")
-            return
+        #print(idol_list)
 
         ### FETCH PLAYER'S ACTIVE TITLE & LOGO ###
         cursor.execute("""SELECT achievement_id FROM CompletedAchievements
@@ -245,38 +239,75 @@ class Gacha(commands.Cog):
         cursor.execute("""SELECT group_logo FROM Groups
                           WHERE achievement_id = :active_title_id""",
                         {'active_title_id': active_title_id})
-        active_logo = cursor.fetchone()[0]
-        #print(active_logo)
+        active_logo = cursor.fetchone()
+        if active_logo:
+            active_logo = active_logo[0]
+            #print(active_logo)
 
         ### FETCH ALL OF PLAYER'S TITLES ###
-        cursor.execute("""SELECT * FROM CompletedAchievements
+        cursor.execute("""SELECT achievement_id FROM CompletedAchievements
                           WHERE (player_id = :player_id AND active_title = 0)""",
                         {'player_id': player_id})
         title_id_list = cursor.fetchall()
+        #print(title_id_list)
 
         ### FETCH PLAYER'S CHOSEN IDOL IMAGE ###
-        active_idol = idol_list[0]
-        active_idol_image = active_idol[2]
-        #print(active_idol_image)
+        if (len(idol_list) > 0):
+            active_idol = idol_list[0]
+            active_idol_image = active_idol[2]
+            #print(active_idol_image)
 
         ### BUILD PLAYER PROFILE CARD ###
-        uploaded_active_idol_image = discord.File(f"./cogs/gacha_images/idols/{active_idol_image}", filename=active_idol_image)
+        if (len(idol_list) > 0):
+            uploaded_active_idol_image = discord.File(f"./cogs/gacha_images/idols/{active_idol_image}", filename=active_idol_image)
         if active_logo is not None:
             uploaded_active_logo = discord.File(f"./cogs/gacha_images/logos/{active_logo}", filename=active_logo)
         
-        card = discord.Embed(title=f"{ctx.author.name}'s Idol Catcher Profile", description=active_title_name, color=discord.Color.green())
+        card = discord.Embed(title=f"{ctx.author.name}'s Idol Catcher Profile", description=f"### {active_title_name}", color=discord.Color.green())
         if active_logo is not None:
             card.set_thumbnail(url=f"attachment://{active_logo}")
-        card.set_image(url=f"attachment://{active_idol_image}")
+        else:
+            card.set_thumbnail(url=ctx.author.avatar)
+        if (len(idol_list) > 0):
+            card.set_image(url=f"attachment://{active_idol_image}")
+
+        title_list = ""
+        for title in title_id_list:
+            cursor.execute("""SELECT achievement_name FROM AchievementList
+                            WHERE achievement_id = :title_id""",
+                            {'title_id': title[0]})
+            title_name = cursor.fetchone()[0]
+            title_list += f"* {title_name}\n"
+            #print(title_list)
+        card.add_field(
+            name=f"\n{ctx.author.name}'s Titles:",
+            value=title_list,
+            inline=False
+        )
+
+        party_list = ""
+        for idol in idol_list:
+            if idol[0] < 10:
+                #spaces = " " #n-space
+                #spaces = "⠀" #braille blank
+                spaces = " " #figure space (numerical digits) U+2007
+            elif idol[0] >= 10 and idol[0] <100:
+                spaces = ""
+            party_list += "`" + spaces + f"{idol[0]}` {idol[1]}\n"
+        if (len(idol_list) == 0):
+            party_list = "Party is empty -- Use `!gacha` to catch an idol!"
+        card.add_field(
+            name=f"\n{ctx.author.name}'s Party:",
+            value=party_list,
+            inline=False
+        )
+
         #print("Embed created!")
 
         ### DISPLAY PLAYER PROFILE CARD ###
-        card.add_field(
-            name=f"{ctx.author.name}'s Party:",
-            value=f"{active_idol[1]}",
-            inline=False
-        )
-        if active_logo is None:
+        if (len(idol_list) == 0) and active_logo is None:
+            await ctx.send(embed=card)
+        elif active_logo is None:
             await ctx.send(files=[uploaded_active_idol_image], embed=card)
         else:
             await ctx.send(files=[uploaded_active_idol_image, uploaded_active_logo], embed=card)
