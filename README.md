@@ -14,6 +14,8 @@
 - **!addidol "[x]" "[x.jpg]" (g) (i) | !newidol | !addi | !newi**: Admin only. Adds a new idol named [x] to the database with the image file [x.jpg]
   - Optional 3rd argument for the new idol's group ID [g] (leave blank for Soloist)
   - Optional 4th argument for the new idol's ID [i]
+- **!resetrolls [x] | !rr [x]**: Admin only. Resets the user [x]'s rolls to max
+  - [x] can be an @ of the user or the user's ID
 
 
 ## Other Commands/Features (in order they were added)
