@@ -18,6 +18,9 @@
   - [x] can be an @ of the user or the user's ID
 - **!setrolls [x] [i] | !sr [x] [i]**: Admin only. Sets the user [x]'s rolls to [i]
   - [x] can be an @ of the user or the user's ID
+  - [i] must be at least 0
+- **!addroll [x] (i) | !ar [x] (i)**: Admin only. Increases the user [x]'s rolls by [i] (default is +1)
+  - [x] can be an @ of the user or the user's ID
   - [i] must be greater than 0
 
 
