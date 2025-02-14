@@ -563,6 +563,53 @@ class Gacha(commands.Cog):
         else:
             await ctx.send("You do not have permission for this command.")
 
+    ### !RESETROLLS ADMIN COMMAND: RESET SPECIFIED PLAYER'S ROLLS ###
+    @commands.command(aliases=["rr"])
+    async def resetrolls(self, ctx, user: discord.User = None):
+
+        ### CHECK IF USER IS ADMIN ###
+        with open("./admin.txt") as file:
+            adminid = int(file.read())
+            #print("adminid =", repr(adminid), type(adminid))
+            #print("ctx.author.id =", repr(ctx.author.id), type(ctx.author.id))
+            #print(ctx.author.id == adminid)
+
+        if (ctx.author.id == adminid):
+
+            ### IF NO ARGS, DISPLAY CORRECT SYNTAX ###
+            if user is None:
+                await ctx.send(f"ERROR: Insufficient parameters. Please use the following syntax:\n`!resetrolls <@User or User ID>`\nExample: `!resetrolls {ctx.author.id}`")
+            return
+
+            ### FETCH USER'S MAX ROLLS ###
+            connection = sqlite3.connect("./cogs/idol_gacha.db")
+            cursor = connection.cursor()
+            
+            cursor.execute("""SELECT max_rolls FROM Players
+                            WHERE player_id = :user_id""",
+                            {'user_id': user.id})
+            max_rolls = cursor.fetchone()[0]
+
+            ### RESET USER'S ROLLS TO MAX ###
+            cursor.execute("""UPDATE Players SET rolls_left = :max_rolls
+                            WHERE (player_id = :user_id)""",
+                            {'max_rolls': max_rolls, 'user_id': user.id})
+
+            ### SEND CONFIRMATION MESSAGE ###
+            cursor.execute("""SELECT rolls_left FROM Players
+                            WHERE (player_id = :user_id)""",
+                            {'user_id': user.id})
+            rolls_left = cursor.fetchone()[0]
+
+            await ctx.send(f"<@{user.id}>'s rolls have been reset to {rolls_left}.")
+
+            connection.commit()
+            connection.close()
+        
+        ### FAIL IF USER IS NOT ADMIN ###
+        else:
+            await ctx.send("You do not have permission for this command.")
+
 ### BUTTON TO CATCH IDOLS ###
 class GachaButtonMenu(discord.ui.View):
     roll_number = None
