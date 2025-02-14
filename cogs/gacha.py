@@ -307,6 +307,31 @@ class Gacha(commands.Cog):
         connection.commit()
         connection.close()
 
+    ### !COMPLETE COMMAND: GRANT PLAYER THE SPECIFIED TITLE IF COMPLETED ###
+    @commands.command()
+    async def complete(self, ctx, arg):
+
+        player_id = ctx.author.id
+
+        ### FETCH PLAYER FROM DB ###
+        connection = sqlite3.connect("./cogs/idol_gacha.db")
+        cursor = connection.cursor()
+        #print("connection made")
+
+        cursor.execute("""SELECT * FROM Players
+                          WHERE player_id = :player_id""",
+                        {'player_id': player_id})
+        player = cursor.fetchone()
+        
+        ### IF PLAYER IS NEW, THROW ERROR (LATER: ADD NEW PLAYER TO DATABASE) ###
+        if player is None:
+            # should create new helper function to create new player?
+            await ctx.send("ERROR: Player not found. Use `!gacha` to start the game and catch your first idol!")
+            return
+        
+        connection.commit()
+        connection.close()
+
     ### !RESETGACHA ADMIN COMMAND: RESET GACHA GAME ###
     @commands.command(aliases=["rg"])
     async def resetgacha(self, ctx):
