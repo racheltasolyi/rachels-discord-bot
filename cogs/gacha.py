@@ -223,12 +223,12 @@ class Gacha(commands.Cog):
         #print(idol_list)
 
         ### FETCH PLAYER'S ACTIVE TITLE & LOGO ###
-        cursor.execute("""SELECT COALESCE(AchievementList.achievement_name, 'Trainee') AS title_name, Groups.group_logo
-                        FROM CompletedAchievements
-                        INNER JOIN AchievementList ON CompletedAchievements.achievement_id = AchievementList.achievement_id
-                        LEFT JOIN Groups ON CompletedAchievements.achievement_id = Groups.achievement_id
-                        WHERE CompletedAchievements.player_id = :player_id 
-                        AND CompletedAchievements.active_title = 1""",
+        cursor.execute("""SELECT COALESCE(TitleList.title_name, 'Trainee') AS title_name, Groups.group_logo
+                        FROM CompletedTitles
+                        INNER JOIN TitleList ON CompletedTitles.title_id = TitleList.title_id
+                        LEFT JOIN Groups ON CompletedTitles.title_id = Groups.title_id
+                        WHERE CompletedTitles.player_id = :player_id 
+                        AND CompletedTitles.active_title = 1""",
                         {'player_id': player_id})
         active_title_query = cursor.fetchone()
         if active_title_query is None:
@@ -239,11 +239,11 @@ class Gacha(commands.Cog):
             active_logo = active_title_query[1]
 
         ### FETCH ALL OF PLAYER'S TITLES ###
-        cursor.execute("""SELECT AchievementList.achievement_name
-                        FROM CompletedAchievements
-                        INNER JOIN AchievementList ON CompletedAchievements.achievement_id = AchievementList.achievement_id
-                        WHERE CompletedAchievements.player_id = :player_id 
-                        AND CompletedAchievements.active_title = 0""",
+        cursor.execute("""SELECT TitleList.title_name
+                        FROM CompletedTitles
+                        INNER JOIN TitleList ON CompletedTitles.title_id = TitleList.title_id
+                        WHERE CompletedTitles.player_id = :player_id 
+                        AND CompletedTitles.active_title = 0""",
                         {'player_id': player_id})
         title_list_query = cursor.fetchall()
         title_list = ""
@@ -334,9 +334,9 @@ class Gacha(commands.Cog):
         else:
             await ctx.send("You do not have permission for this command.")
     
-    ### !ADDACHIEVEMENT ADMIN COMMAND: ADD NEW ACHIEVEMENT ###
-    @commands.command(aliases=["newachievement", "adda", "newa"])
-    async def addachievement(self, ctx, *args):
+    ### !ADDTITLE ADMIN COMMAND: ADD NEW TITLE ###
+    @commands.command(aliases=["newtitle", "addt", "newt"])
+    async def addtitle(self, ctx, *args):
 
         ### CHECK IF USER IS ADMIN ###
         with open("./admin.txt") as file:
@@ -346,33 +346,33 @@ class Gacha(commands.Cog):
             
             ### IF NO ARGS OR MORE THAN 2 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) == 0:
-                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addachievement \"[Name of Achievement]\" [(optional)Achievement ID]`\nExample: `!addachievement \"Stay (Stray Kids Stan)\"`")
+                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addtitle \"[Name of Title]\" [(optional)Title ID]`\nExample: `!addtitle \"Stay (Stray Kids Stan)\"`")
             elif len(args) > 2:
-                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addachievement \"[Name of Achievement]\" [(optional)Achievement ID]`\nExample: `!addachievement \"Stay (Stray Kids Stan)\"`")
+                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addtitle \"[Name of Title]\" [(optional)Title ID]`\nExample: `!addtitle \"Stay (Stray Kids Stan)\"`")
             
-            ### IF AT LEAST 1 ARG, ADD ACHIEVEMENT TO DATABASE ###
+            ### IF AT LEAST 1 ARG, ADD TITLE TO DATABASE ###
             else:
-                new_achievement_name = args[0]
+                new_title_name = args[0]
                 connection = sqlite3.connect("./cogs/idol_gacha.db")
                 cursor = connection.cursor()
-                cursor.execute("""INSERT INTO AchievementList (achievement_name)
-                                Values (:new_achievement_name)""",
-                                {'new_achievement_name': new_achievement_name})
+                cursor.execute("""INSERT INTO TitleList (title_name)
+                                Values (:new_title_name)""",
+                                {'new_title_name': new_title_name})
                 
-                ### IF 2 ARGS, UPDATE ACHIEVEMENT ID TO SPECIFIED NUMBER ###
+                ### IF 2 ARGS, UPDATE TITLE ID TO SPECIFIED NUMBER ###
                 if len(args) == 2:
-                    new_achievement_id = args[1]
-                    cursor.execute("""UPDATE AchievementList SET achievement_id = :new_achievement_id
-                              WHERE achievement_name = :new_achievement_name""",
-                              {'new_achievement_id': new_achievement_id,'new_achievement_name': new_achievement_name})
+                    new_title_id = args[1]
+                    cursor.execute("""UPDATE TitleList SET title_id = :new_title_id
+                              WHERE title_name = :new_title_name""",
+                              {'new_title_id': new_title_id,'new_title_name': new_title_name})
                 
                 ### CONFIRMATION MESSAGE ###
-                cursor.execute("""SELECT * FROM AchievementList
-                          WHERE achievement_name = :new_achievement_name""",
-                          {'new_achievement_name': new_achievement_name})
-                new_achievement = cursor.fetchone()
+                cursor.execute("""SELECT * FROM TitleList
+                          WHERE title_name = :new_title_name""",
+                          {'new_title_name': new_title_name})
+                new_title = cursor.fetchone()
 
-                await ctx.send(f"{new_achievement} has successfully been added to Achievements.")
+                await ctx.send(f"{new_title} has successfully been added to Titles.")
             
                 connection.commit()
                 connection.close()
@@ -393,9 +393,9 @@ class Gacha(commands.Cog):
             
             ### IF LESS THAN 2 ARGS OR MORE THAN 4 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) < 2:
-                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Achievement ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
+                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Title ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
             elif len(args) > 4:
-                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Achievement ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
+                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Title ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
             
             ### IF AT LEAST 2 ARGS, ADD GROUP TO DATABASE ###
             else:
@@ -407,12 +407,12 @@ class Gacha(commands.Cog):
                                 Values (:new_group_name, :new_group_logo)""",
                                 {'new_group_name': new_group_name, 'new_group_logo': new_group_logo})
                 
-                ### IF AT LEAST 3 ARGS, UPDATE GROUP'S ACHIEVEMENT ID ###
+                ### IF AT LEAST 3 ARGS, UPDATE GROUP'S TITLE ID ###
                 if len(args) > 2:
-                    group_achievement_id = args[2]
-                    cursor.execute("""UPDATE Groups SET achievement_id = :group_achievement_id
+                    group_title_id = args[2]
+                    cursor.execute("""UPDATE Groups SET title_id = :group_title_id
                               WHERE group_name = :new_group_name""",
-                              {'group_achievement_id': group_achievement_id,'new_group_name': new_group_name})
+                              {'group_title_id': group_title_id,'new_group_name': new_group_name})
                 
                     ### IF 4 ARGS, UPDATE GROUP'S ID ###
                     if len(args) == 4:
@@ -431,19 +431,19 @@ class Gacha(commands.Cog):
                 new_group_name = new_group[1]
                 new_group_logo = new_group[2]
                 new_group_id = new_group[0]
-                new_group_achievement_id = new_group[3]
+                new_group_title_id = new_group[3]
                 #print(f"new_group_name: {new_group_name}")
                 #print(f"new_group_logo: {new_group_logo}")
                 #print(f"new_group_id: {new_group_id}")
-                #print(f"new_group_achievement_id: {new_group_achievement_id}")
-                if new_group_achievement_id:
-                    cursor.execute("""SELECT achievement_name FROM AchievementList
-                                    WHERE achievement_id = :new_group_achievement_id""",
-                                    {'new_group_achievement_id': new_group_achievement_id})
-                    new_group_achievement = cursor.fetchone()[0]
+                #print(f"new_group_title_id: {new_group_title_id}")
+                if new_group_title_id:
+                    cursor.execute("""SELECT title_name FROM TitleList
+                                    WHERE title_id = :new_group_title_id""",
+                                    {'new_group_title_id': new_group_title_id})
+                    new_group_title = cursor.fetchone()[0]
                 else:
-                    new_group_achievement = None
-                #print(f"new_group_achievement: {new_group_achievement}")
+                    new_group_title = None
+                #print(f"new_group_title: {new_group_title}")
 
                 ### BUILD NEW GROUP CONFIRMATION CARD ###
                 if new_group_logo and not os.path.exists(f"./cogs/gacha_images/logos/{new_group_logo}"):
@@ -456,7 +456,7 @@ class Gacha(commands.Cog):
                 #await ctx.send(embed=card)
                 card.set_footer(text=f"New group added by {ctx.author.name}", icon_url=ctx.author.avatar)
                 card.set_thumbnail(url=f"attachment://{new_group_logo}")
-                card.add_field(name=f"Group ID: {new_group_id}", value=f"Achievement: {new_group_achievement}", inline=False)
+                card.add_field(name=f"Group ID: {new_group_id}", value=f"Title: {new_group_title}", inline=False)
                 await ctx.send(files=[uploaded_new_group_logo], embed=card)
             
                 connection.commit()
