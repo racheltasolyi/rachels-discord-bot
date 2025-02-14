@@ -6,10 +6,10 @@
   - Spelling and Capitalization must match database
 - **!profile | !p**: Displays player's profile with their earned titles and current party members
 - **!resetgacha | !rg**: Admin only. Releases all caught idols back into the wild
-- **!addachievement "[x]" | !newachievement "[x]"**: Admin only. Adds a new achievement named [x] to the database
-  - Optional 2nd argument for the new achievement's ID
+- **!addtitle "[x]" | !newtitle "[x]"**: Admin only. Adds a new title named [x] to the database
+  - Optional 2nd argument for the new title's ID
 - **!addgroup "[x]" "[x.jpg]" (a) (g) | !newgroup | !addg | !newg**: Admin only. Adds a new group named [x] to the database with the logo file [x.jpg]
-  - Optional 3rd argument for the new group's associated achievement_id
+  - Optional 3rd argument for the new group's associated title_id
   - Optional 4th argument for the new group's ID
 - **!addidol "[x]" "[x.jpg]" (g) (i) | !newidol | !addi | !newi**: Admin only. Adds a new idol named [x] to the database with the image file [x.jpg]
   - Optional 3rd argument for the new idol's group ID [g] (leave blank for Soloist)
