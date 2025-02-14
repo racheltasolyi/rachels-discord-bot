@@ -610,6 +610,58 @@ class Gacha(commands.Cog):
         else:
             await ctx.send("You do not have permission for this command.")
 
+    ### !SETROLLS ADMIN COMMAND: SET SPECIFIED PLAYER'S ROLLS TO SPECIFIED AMOUNT ###
+    @commands.command(aliases=["sr"])
+    async def setrolls(self, ctx, user: discord.User = None, set_rolls: int = 0):
+
+        ### CHECK IF USER IS ADMIN ###
+        with open("./admin.txt") as file:
+            adminid = int(file.read())
+            #print("adminid =", repr(adminid), type(adminid))
+            #print("ctx.author.id =", repr(ctx.author.id), type(ctx.author.id))
+            #print(ctx.author.id == adminid)
+
+        if (ctx.author.id == adminid):
+
+            ### IF NO ARGS, DISPLAY CORRECT SYNTAX ###
+            if user is None or set_rolls == 0:
+                await ctx.send(f"ERROR: Insufficient or incorrect parameters. Please use the following syntax:\n`!setrolls <@User or User ID> <Number of Rolls>`\nExample: `!setrolls {ctx.author.id} 10`")
+                return
+
+            connection = sqlite3.connect("./cogs/idol_gacha.db")
+            cursor = connection.cursor()
+            
+            ### FAIL IF PLAYER DOES NOT EXIST ###
+            cursor.execute("""SELECT * FROM Players
+                            WHERE player_id = :user_id""",
+                            {'user_id': user.id})
+            player = cursor.fetchone()
+            if player is None:
+                await ctx.send(f"ERROR: Player could not be found.")
+                connection.commit()
+                connection.close()
+                return
+
+            ### SET USER'S ROLLS ###
+            cursor.execute("""UPDATE Players SET rolls_left = :set_rolls
+                            WHERE player_id = :user_id""",
+                            {'set_rolls': set_rolls, 'user_id': user.id})
+
+            ### SEND CONFIRMATION MESSAGE ###
+            cursor.execute("""SELECT rolls_left FROM Players
+                            WHERE player_id = :user_id""",
+                            {'user_id': user.id})
+            rolls_left = cursor.fetchone()[0]
+
+            await ctx.send(f"<@{user.id}>'s rolls have been set to {rolls_left}.")
+
+            connection.commit()
+            connection.close()
+        
+        ### FAIL IF USER IS NOT ADMIN ###
+        else:
+            await ctx.send("You do not have permission for this command.")
+
 ### BUTTON TO CATCH IDOLS ###
 class GachaButtonMenu(discord.ui.View):
     roll_number = None

@@ -16,6 +16,9 @@
   - Optional 4th argument for the new idol's ID [i]
 - **!resetrolls [x] | !rr [x]**: Admin only. Resets the user [x]'s rolls to max
   - [x] can be an @ of the user or the user's ID
+- **!setrolls [x] [i] | !sr [x] [i]**: Admin only. Sets the user [x]'s rolls to [i]
+  - [x] can be an @ of the user or the user's ID
+  - [i] must be greater than 0
 
 
 ## Other Commands/Features (in order they were added)
