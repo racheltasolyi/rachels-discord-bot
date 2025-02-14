@@ -620,7 +620,7 @@ class Gacha(commands.Cog):
 
     ### !SETROLLS ADMIN COMMAND: SET SPECIFIED PLAYER'S ROLLS TO SPECIFIED AMOUNT ###
     @commands.command(aliases=["sr"])
-    async def setrolls(self, ctx, user: discord.User = None, set_rolls: int = 0):
+    async def setrolls(self, ctx, user: discord.User = None, set_rolls: int = -1):
 
         ### CHECK IF USER IS ADMIN ###
         with open("./admin.txt") as file:
@@ -632,7 +632,7 @@ class Gacha(commands.Cog):
         if (ctx.author.id == adminid):
 
             ### IF NO ARGS, DISPLAY CORRECT SYNTAX ###
-            if user is None or set_rolls == 0:
+            if user is None or set_rolls < 0:
                 await ctx.send(f"ERROR: Insufficient or incorrect parameters. Please use the following syntax:\n`!setrolls <@User or User ID> <Number of Rolls>`\nExample: `!setrolls {ctx.author.id} 10`")
                 return
 
@@ -662,6 +662,62 @@ class Gacha(commands.Cog):
             rolls_left = cursor.fetchone()[0]
 
             await ctx.send(f"<@{user.id}>'s rolls have been set to {rolls_left}.")
+
+            connection.commit()
+            connection.close()
+        
+        ### FAIL IF USER IS NOT ADMIN ###
+        else:
+            await ctx.send("You do not have permission for this command.")
+    
+    ### !ADDROLL ADMIN COMMAND: ADD ROLLS TO SPECIFIED PLAYER (DEFAULT IS +1 ROLL) ###
+    @commands.command(aliases=["ar"])
+    async def addroll(self, ctx, user: discord.User = None, add_roll: int = 1):
+
+        ### CHECK IF USER IS ADMIN ###
+        with open("./admin.txt") as file:
+            adminid = int(file.read())
+            #print("adminid =", repr(adminid), type(adminid))
+            #print("ctx.author.id =", repr(ctx.author.id), type(ctx.author.id))
+            #print(ctx.author.id == adminid)
+
+        if (ctx.author.id == adminid):
+
+            ### IF NO ARGS, DISPLAY CORRECT SYNTAX ###
+            if user is None or add_roll < 1:
+                await ctx.send(f"ERROR: Insufficient or incorrect parameters. Please use the following syntax:\n`!addroll <@User or User ID> (optional)<Number of Rolls>`\nExample: `!addroll {ctx.author.id} 5`")
+                return
+
+            ### FETCH USER'S ROLLS LEFT ###
+            connection = sqlite3.connect("./cogs/idol_gacha.db")
+            cursor = connection.cursor()
+            
+            cursor.execute("""SELECT rolls_left FROM Players
+                            WHERE player_id = :user_id""",
+                            {'user_id': user.id})
+            rolls_left = cursor.fetchone()
+
+            ### FAIL IF PLAYER DOES NOT EXIST ###
+            if rolls_left is None:
+                await ctx.send(f"ERROR: Player could not be found.")
+                connection.commit()
+                connection.close()
+                return
+            
+            rolls_left = rolls_left[0] + add_roll
+
+            ### ADD TO USER'S ROLLS ###
+            cursor.execute("""UPDATE Players SET rolls_left = :rolls_left
+                            WHERE (player_id = :user_id)""",
+                            {'rolls_left': rolls_left, 'user_id': user.id})
+
+            ### SEND CONFIRMATION MESSAGE ###
+            cursor.execute("""SELECT rolls_left FROM Players
+                            WHERE (player_id = :user_id)""",
+                            {'user_id': user.id})
+            rolls_left = cursor.fetchone()[0]
+
+            await ctx.send(f"<@{user.id}> now has {rolls_left} rolls left.")
 
             connection.commit()
             connection.close()
