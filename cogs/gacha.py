@@ -579,7 +579,7 @@ class Gacha(commands.Cog):
             ### IF NO ARGS, DISPLAY CORRECT SYNTAX ###
             if user is None:
                 await ctx.send(f"ERROR: Insufficient parameters. Please use the following syntax:\n`!resetrolls <@User or User ID>`\nExample: `!resetrolls {ctx.author.id}`")
-            return
+                return
 
             ### FETCH USER'S MAX ROLLS ###
             connection = sqlite3.connect("./cogs/idol_gacha.db")
