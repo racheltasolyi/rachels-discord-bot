@@ -50,9 +50,9 @@ class Gacha(commands.Cog):
         
         ### IF PLAYER IS NEW, ADD NEW PLAYER TO DATABASE ###
         if player is None:
-            cursor.execute("""INSERT INTO Players (player_id)
-                              Values (:roller_id)""",
-                            {'roller_id': roller_id})
+            cursor.execute("""INSERT INTO Players (player_id, player_username)
+                              Values (:roller_id, :roller_username)""",
+                            {'roller_id': roller_id, 'roller_username': ctx.author.name})
 
         ### FETCH THE ROLLED IDOL AND THEIR GROUP ###
         cursor.execute("""SELECT * FROM Idols
