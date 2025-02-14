@@ -588,7 +588,15 @@ class Gacha(commands.Cog):
             cursor.execute("""SELECT max_rolls FROM Players
                             WHERE player_id = :user_id""",
                             {'user_id': user.id})
-            max_rolls = cursor.fetchone()[0]
+            max_rolls = cursor.fetchone()
+
+            ### FAIL IF PLAYER DOES NOT EXIST ###
+            if max_rolls is None:
+                await ctx.send(f"ERROR: Player could not be found.")
+                connection.commit()
+                connection.close()
+                return
+            max_rolls = max_rolls[0]
 
             ### RESET USER'S ROLLS TO MAX ###
             cursor.execute("""UPDATE Players SET rolls_left = :max_rolls
