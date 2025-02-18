@@ -128,7 +128,8 @@ class Gacha(commands.Cog):
             if roll_logo is None:
                 await ctx.send(files=[uploaded_roll_image], embed=card, view=GachaButtonMenu(roll_number, roller_id))
             else:
-                await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=GachaButtonMenu(roll_number, roller_id))
+                view = GachaButtonMenu(roll_number, roller_id)
+                view.message = await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=view)
         
         ### UPDATE TIMESTAMP OF PLAYER'S LAST ROLL ###
         cursor.execute("""UPDATE Players
@@ -732,12 +733,19 @@ class GachaButtonMenu(discord.ui.View):
 
     ### BUTTON TIMES OUT AFTER 60 SECONDS ###
     def __init__(self, roll_number, roller_id):
-        super().__init__(timeout=60)
+        super().__init__(timeout=5)
         self.roll_number = roll_number
         self.roller_id = roller_id
+
+    async def on_timeout(self) -> None:
+        for button in self.children:
+            if not button.disabled:
+                button.disabled = True
+                button.label = "The wild idol fled!"
+        await self.message.edit(view=self)
     
     @discord.ui.button(label="Throw Pokeball", style=discord.ButtonStyle.blurple)
-    async def throwpokeball(self, interaction: discord.Interaction, Button: discord.ui.Button):
+    async def throwpokeball(self, interaction: discord.Interaction, button: discord.ui.Button):
         userid = interaction.user.id
         roller = self.roller_id
 
@@ -766,6 +774,10 @@ class GachaButtonMenu(discord.ui.View):
                                 WHERE idol_id = :roll_number""",
                                 {'userid': userid, 'roll_number': self.roll_number})
                 content=f"{roll_name} was caught by {interaction.user.mention}!"
+                for button in self.children:
+                    button.disabled = True
+                    button.label = f"{roll_name} has been caught!"
+                await self.message.edit(view=self)
                 #print(roll)
             else:
                 content=f"You already caught {roll_name}!"
