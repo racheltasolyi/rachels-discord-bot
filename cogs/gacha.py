@@ -142,54 +142,50 @@ class Gacha(commands.Cog):
     
     ### !RELEASE COMMAND: RELEASE SPECIFIED IDOL ###
     @commands.command(aliases=["r"])
-    async def release(self, ctx, *, arg: str = None):
+    async def release(self, ctx, arg = None):
 
         ### IF NO ARGS, DISPLAY CORRECT SYNTAX ###
         if arg is None:
-            await ctx.send("ERROR: Insufficient parameters.\nPlease use the following syntax:\n`!release \"[Name of Idol]\"`\nExample: `!release \"Lee Know\"`")
+            await ctx.send("ERROR: Insufficient parameters. Please use the following syntax:\n`!release \"<Idol ID>\"`\nExample: `!release 14`")
             return
 
-        ### CHECK IF THE IDOL IS OWNED BY USER ###
+        ### FAIL IF ARG IS NOT INT ###
+        try:
+            idol_id = int(arg)
+        except (ValueError, TypeError):
+            await ctx.send("ERROR: Invalid ID. Please enter a number using the following syntax:\n`!release \"<Idol ID>\"`\nExample: `!release 14`")
+            return
+
+        ### FETCH IDOL ###
         else:
             connection = sqlite3.connect("./cogs/idol_gacha.db")
             cursor = connection.cursor()
             cursor.execute("""SELECT * FROM Idols
-                            WHERE (idol_name = :arg AND player_id = :user_id)""",
-                            {'arg': arg, 'user_id': ctx.author.id})
-            idol = cursor.fetchall()
+                            WHERE idol_id = :arg""",
+                            {'arg': idol_id})
+            idol = cursor.fetchone()
 
-            ### ERROR HANDLING ###
-            if len(idol) == 0 or len(idol) > 1:
+            ### ERROR MESSAGE IF IDOL DOES NOT EXIST ###
+            if idol is None:
+                await ctx.send(f"ERROR: No idols with the ID of {idol_id} can be found. Use !profile to check the IDs of your idols.")
+                return
 
-                ### ERROR MESSAGE IF MORE THAN 1 IDOL ARE FOUND IN PARTY ###
-                if len(idol) > 1:
-                    await ctx.send(f"ERROR: Multiple idols named {arg} were found in your party. Please contact admin SoulDaiDa for assistance.")
-                    return
-
-                else:
-                    cursor.execute("""SELECT * FROM Idols
-                                    WHERE idol_name = :arg""",
-                                    {'arg': arg})
-                    idol = cursor.fetchall()
-                    
-                    ### ERROR MESSAGE IF IDOL DOES NOT EXIST ###
-                    if len(idol) == 0:
-                        await ctx.send(f"ERROR: No idols named {arg} can be found. Please check spelling and capitalization.")
-                        return
-                
-                    ### ERROR MESSAGE IF USER DOES NOT OWN IDOL ###
-                    elif idol[0][3] != ctx.author.id:
-                        await ctx.send(f"ERROR: {arg} is not in your party.")
-                        return
-
-            ### RELEASE THE IDOL BACK INTO THE WILD ###
-            else:
-                release_idol_id = idol[0][0]
+            ### GET IDOL'S INFO ###
+            idol_name = idol[1]
+            owner_id = idol[3]
+            
+            ### IF PLAYER IS OWNER, RELEASE THE IDOL BACK INTO THE WILD ###
+            if ctx.author.id == owner_id:
                 cursor.execute("""UPDATE Idols SET player_id = 0
-                                WHERE idol_id == :release_idol_id""",
-                                {'release_idol_id': release_idol_id})
+                                WHERE idol_id == :idol_id""",
+                                {'idol_id': idol_id})
                 
-                await ctx.send(f"{arg} has been released from your party.")
+                await ctx.send(f"{idol_name} has been released from your party.")
+
+            else:
+                ### ERROR MESSAGE IF USER DOES NOT OWN IDOL ###
+                await ctx.send(f"ERROR: {idol_name} is not in your party.")
+                return
 
             connection.commit()
             connection.close()
@@ -727,7 +723,7 @@ class Gacha(commands.Cog):
         else:
             await ctx.send("You do not have permission for this command.")
 
-### BUTTON TO CATCH IDOLS ###
+### BUTTON MENU TO CATCH IDOLS ###
 class GachaButtonMenu(discord.ui.View):
     roll_number = None
 
@@ -737,6 +733,7 @@ class GachaButtonMenu(discord.ui.View):
         self.roll_number = roll_number
         self.roller_id = roller_id
 
+    ### BUTTON DISABLES UPON TIMEOUT ###
     async def on_timeout(self) -> None:
         for button in self.children:
             if not button.disabled:
@@ -744,6 +741,74 @@ class GachaButtonMenu(discord.ui.View):
                 button.label = "The wild idol fled!"
         await self.message.edit(view=self)
     
+    ### IDOL IS CAUGHT UPON BUTTON PRESS ###
+    @discord.ui.button(label="Throw Pokeball", style=discord.ButtonStyle.blurple)
+    async def throwpokeball(self, interaction: discord.Interaction, button: discord.ui.Button):
+        userid = interaction.user.id
+        roller = self.roller_id
+
+        connection = sqlite3.connect("./cogs/idol_gacha.db")
+        cursor = connection.cursor()
+        #print("connection made")
+
+        ### FETCH IDOL NAME ###
+        cursor.execute("""SELECT * FROM Idols
+                          WHERE idol_id = :roll_number""",
+                        {'roll_number': self.roll_number})
+        roll = cursor.fetchone()
+        roll_name = roll[1]
+        #print(roll)
+
+        ### SUCCESSFULLY CATCH IDOL IF CORRECT PLAYER, FAIL UPON REPEATED ATTEMPTS ###
+        if (userid == self.roller_id):
+            if (roll[3] == 0 or roll[3] == None):
+                roll_claimed = False
+            else:
+                roll_claimed = True
+            
+            if not roll_claimed:
+                cursor.execute("""UPDATE Idols
+                                SET player_id = :userid
+                                WHERE idol_id = :roll_number""",
+                                {'userid': userid, 'roll_number': self.roll_number})
+                content=f"{roll_name} was caught by {interaction.user.mention}!"
+                for button in self.children:
+                    button.disabled = True
+                    button.label = f"{roll_name} has been caught!"
+                await self.message.edit(view=self)
+                #print(roll)
+            else:
+                content=f"You already caught {roll_name}!"
+
+        ### FAIL IF DIFFERENT PLAYER ###
+        else:
+            content=f"Nice try {interaction.user.mention}, {roll_name} can only be caught by <@{roller}> this time!"
+        
+        connection.commit()
+        connection.close()
+
+        await interaction.response.send_message(content=content)
+
+
+### BUTTON MENU FOR !RELEASE CONFIRMATION ###
+class ReleaseButtonMenu(discord.ui.View):
+    roll_number = None
+
+    ### BUTTON TIMES OUT AFTER 60 SECONDS ###
+    def __init__(self, roll_number, roller_id):
+        super().__init__(timeout=5)
+        self.roll_number = roll_number
+        self.roller_id = roller_id
+
+    ### BUTTON DISABLES UPON TIMEOUT ###
+    async def on_timeout(self) -> None:
+        for button in self.children:
+            if not button.disabled:
+                button.disabled = True
+                button.label = "The wild idol fled!"
+        await self.message.edit(view=self)
+    
+    ### IDOL IS CAUGHT UPON BUTTON PRESS ###
     @discord.ui.button(label="Throw Pokeball", style=discord.ButtonStyle.blurple)
     async def throwpokeball(self, interaction: discord.Interaction, button: discord.ui.Button):
         userid = interaction.user.id
