@@ -2,9 +2,12 @@
 - **!gacha | !g**: Rolls a random idol card that you can catch with a Pokeball
   - Idols can only be caught by the user who rolled them
   - **!gacha [x] | !g**: Admin only. Rolls the idol whose Idol ID matches [x]
-- **!release [x] | !r**: Releases the idol named [x] from player's party
-  - Spelling and Capitalization must match database
+- **!release [x] | !r**: Releases the idol with the ID of [x] from player's party
+  - Sends the idol card and asks for confirmation
+  - "Cancel" button cancels the command
 - **!profile | !p**: Displays player's profile with their earned titles and current party members
+  - Currently may not work if the player has no idols in their party
+- **!activetitle | !picktitle | !title**: Sends a dropdown menu which lets the player change their active title
 - **!resetgacha | !rg**: Admin only. Releases all caught idols back into the wild
 - **!addtitle "[x]" | !newtitle "[x]"**: Admin only. Adds a new title named [x] to the database
   - Optional 2nd argument for the new title's ID
