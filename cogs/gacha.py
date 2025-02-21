@@ -247,7 +247,7 @@ class Gacha(commands.Cog):
                           WHERE player_id = :player_id""",
                         {'player_id': player_id})
         idol_list = cursor.fetchall()
-        #print(idol_list)
+        print(idol_list)
 
         ### FETCH PLAYER'S ACTIVE TITLE & LOGO ###
         cursor.execute("""SELECT COALESCE(TitleList.title_name, 'Trainee') AS title_name, Groups.group_logo
@@ -264,6 +264,8 @@ class Gacha(commands.Cog):
         else:
             active_title_name = active_title_query[0]
             active_logo = active_title_query[1]
+        print(active_title_name)
+        print(active_logo)
 
         ### FETCH ALL OF PLAYER'S TITLES ###
         cursor.execute("""SELECT TitleList.title_name
@@ -287,7 +289,13 @@ class Gacha(commands.Cog):
         if (len(idol_list) > 0):
             uploaded_active_idol_image = discord.File(f"./cogs/gacha_images/idols/{active_idol_image}", filename=active_idol_image)
         if active_logo is not None:
-            uploaded_active_logo = discord.File(f"./cogs/gacha_images/logos/{active_logo}", filename=active_logo)
+            #debugging
+            try:
+                uploaded_active_logo = discord.File(f"./cogs/gacha_images/logos/{active_logo}", filename=active_logo)
+            except Exception as e:
+                print(f"Error loading logo file: {e}")
+                uploaded_active_logo = None
+            #uploaded_active_logo = discord.File(f"./cogs/gacha_images/logos/{active_logo}", filename=active_logo)
         
         card = discord.Embed(title=f"{ctx.author.name}'s Idol Catcher Profile", description=f"### {active_title_name}", color=discord.Color.green())
         if active_logo is not None:
@@ -329,7 +337,40 @@ class Gacha(commands.Cog):
         elif active_logo is None:
             await ctx.send(files=[uploaded_active_idol_image], embed=card)
         else:
-            await ctx.send(files=[uploaded_active_idol_image, uploaded_active_logo], embed=card)
+            #debugging
+            files=[uploaded_active_idol_image, uploaded_active_logo]
+            print(f"Files to send: {[file.filename for file in files]}")
+            await ctx.send(files=files, embed=card)
+
+        connection.commit()
+        connection.close()
+    
+    ### !RELEASE COMMAND: RELEASE SPECIFIED IDOL ###
+    @commands.command(aliases=["picktitle", "title"])
+    async def activetitle(self, ctx):
+        
+        ### FETCH PLAYER'S TITLES ###
+        ### FETCH IDOL ###
+        player_id = ctx.author.id
+        connection = sqlite3.connect("./cogs/idol_gacha.db")
+        cursor = connection.cursor()
+        cursor.execute("""SELECT CompletedTitles.title_id, TitleList.title_name, CompletedTitles.active_title
+                        FROM CompletedTitles
+                        INNER JOIN TitleList ON CompletedTitles.title_id = TitleList.title_id
+                        WHERE player_id = :player_id""",
+                        {'player_id': player_id})
+        titles = cursor.fetchall()
+        #print(titles)
+
+        ### ERROR MESSAGE IF NO TITLES FOUND ###
+        if titles is None:
+            await ctx.send(f"ERROR: No titles found for player <@{player_id}>.")
+            connection.close()
+            return
+        
+        ### SEND SELECT MENU ###
+        view = ActiveTitleSelectMenu(player_id, titles)
+        view.message = await ctx.send("Choose one to set as your Active Title:", view=view)
 
         connection.commit()
         connection.close()
@@ -938,6 +979,96 @@ class ReleaseButtonMenu(discord.ui.View):
 
         await interaction.response.send_message(content=content)
         
+
+### SELECT MENU FOR ACTIVE TITLE ###
+class ActiveTitleSelectMenu(discord.ui.View):
+    caller_id = None
+
+    ### MENU TIMES OUT AFTER 60 SECONDS ###
+    def __init__(self, caller_id, titles):
+        super().__init__(timeout=5)
+        self.caller_id = caller_id
+
+        options = []
+        for title in titles:
+            option = discord.SelectOption(label=title[1], value=title[0])
+            if title[2] == 1:
+                option.label += " <ACTIVE>"
+                self.active_title_id = title[0]
+                self.active_title = title[1]
+            options.append(option)
+
+        self.select = discord.ui.Select(
+            placeholder="Select a Title",
+            options=options
+        )
+        self.select.callback = self.select_callback
+        self.add_item(self.select)
+    
+    ### MENU DISABLES UPON TIMEOUT ###
+    async def on_timeout(self) -> None:
+        for child in self.children:
+            if not child.disabled:
+                child.disabled = True
+                child.placeholder = "Command timed out"
+        await self.message.edit(view=self)
+    
+    ### CALLBACK FUNCTION ###
+    async def select_callback(self, interaction):
+        user_id = interaction.user.id
+        new_active_title_id = int(self.select.values[0])
+        #print(new_active_title_id)
+        #print(self.active_title_id)
+
+        ### DO NOTHING IF ACTIVE TITLE IS SELECTED ###
+        if (user_id == self.caller_id):
+
+            if (new_active_title_id != self.active_title_id):
+
+                ### CHANGE ACTIVE TITLE IF NEW TITLE IS SELECTED, THEN DISABLE MENU ###
+                connection = sqlite3.connect("./cogs/idol_gacha.db")
+                cursor = connection.cursor()
+
+                ### DEACTIVATE OLD ACTIVE TITLE ###
+                cursor.execute("""UPDATE CompletedTitles SET active_title = 0
+                                WHERE title_id == :active_title_id""",
+                                {'active_title_id': self.active_title_id})
+
+                ### ACTIVATE NEW ACTIVE TITLE ###
+                cursor.execute("""UPDATE CompletedTitles SET active_title = 1
+                                WHERE title_id == :new_active_title_id""",
+                                {'new_active_title_id': new_active_title_id})
+                cursor.execute("""SELECT title_name FROM TitleList
+                                WHERE title_id == :new_active_title_id""",
+                                {'new_active_title_id': new_active_title_id})
+                new_active_title = cursor.fetchone()[0]
+
+                connection.commit()
+                connection.close()
+
+                content=f"<@{self.caller_id}>'s active title has been updated to {new_active_title}."
+
+                ### DISABLE MENU ###
+                for child in self.children:
+                    child.disabled = True
+                    child.placeholder = new_active_title
+                await interaction.response.edit_message(view=self)
+            
+            else:
+                content=f"ERROR: <@{self.caller_id}>'s active title is already {self.active_title}."
+
+                ### DISABLE MENU ###
+                for child in self.children:
+                    child.disabled = True
+                    child.placeholder = self.active_title
+                await interaction.response.edit_message(view=self)
+
+        ### FAIL IF DIFFERENT PLAYER ###
+        else:
+            content=f"ERROR: Only <@{self.caller_id}> has permission to use this menu!"
+
+        await interaction.followup.send(content=content)
+
 
 async def setup(bot):
     await bot.add_cog(Gacha(bot))
