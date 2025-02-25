@@ -402,7 +402,7 @@ class Gacha(commands.Cog):
         #view = ActiveTitleSelectMenu(player_id, titles)
         #view.message = await ctx.send("Choose one to set as your Active Title:", view=view)
         #data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        formatter = IdolsListPagesFormatter(idols, per_page=1)
+        formatter = IdolsListPagesFormatter(idols, per_page=5)
         menu = IdolsListPages(formatter)
         await menu.start(ctx)
 
@@ -1020,7 +1020,7 @@ class ActiveTitleSelectMenu(discord.ui.View):
 
     ### MENU TIMES OUT AFTER 60 SECONDS ###
     def __init__(self, caller_id, titles):
-        super().__init__(timeout=5)
+        super().__init__(timeout=60)
         self.caller_id = caller_id
 
         options = []
@@ -1105,8 +1105,10 @@ class ActiveTitleSelectMenu(discord.ui.View):
 
 
 class IdolsListPages(discord.ui.View, menus.MenuPages):
+
+    ### MENU TIMES OUT AFTER 60 SECONDS ###
     def __init__(self, source):
-        super().__init__(timeout=15)
+        super().__init__(timeout=60)
         self._source = source
         self.current_page = 0
         self.ctx = None
@@ -1170,10 +1172,24 @@ class IdolsListPages(discord.ui.View, menus.MenuPages):
 class IdolsListPagesFormatter(menus.ListPageSource):
     async def format_page(self, menu, entries):
         embed = discord.Embed(
-            description=f"This is number {entries}.", 
-            color=discord.Colour.random()
+            title=f"{menu.ctx.author}'s Party",
+            color=discord.Color.green()
         )
-        embed.set_footer(text=f"Requested by {menu.ctx.author}")
+
+        party_list = ""
+        for idol in entries:
+            if idol[0] < 10:
+                spaces = " " #figure space (numerical digits) U+2007
+            elif idol[0] >= 10 and idol[0] <100:
+                spaces = ""
+            party_list += "`" + spaces + f"{idol[0]}` `{idol[2]}` {idol[1]}\n"
+        embed.add_field(
+            name="",
+            value=party_list,
+            inline=False
+        )
+
+        #embed.set_footer(text=f"{self.get_page}")
         return embed
     
 
