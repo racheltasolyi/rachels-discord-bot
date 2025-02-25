@@ -7,6 +7,7 @@
   - "Cancel" button cancels the command
 - **!profile | !p**: Displays player's profile with their earned titles and current party members
   - Currently may not work if the player has no idols in their party
+- **!idols**: Displays a paginated list of all idols in the player's party
 - **!activetitle | !picktitle | !title**: Sends a dropdown menu which lets the player change their active title
 - **!resetgacha | !rg**: Admin only. Releases all caught idols back into the wild
 - **!addtitle "[x]" | !newtitle "[x]"**: Admin only. Adds a new title named [x] to the database
@@ -69,6 +70,7 @@
       - Or `CTRL`+`Shift`+`P` to open the command palette on Windows, then select "Format Document"
 11. In the terminal, run `install discord`, `pip install easy-pil`, and `pip install asyncpraw` if necessary (add ` --user` at the end if you run into any permissions issues)
     - If asyncpraw is outdated, run `pip install --upgrade https://github.com/praw-dev/asyncpraw/archive/master.zip` to update to latest version
+12. In the terminal, run `python -m pip install -U git+https://github.com/Rapptz/discord-ext-menus` for the discord.menus extension
    
 
 
