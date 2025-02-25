@@ -314,18 +314,18 @@ class Gacha(commands.Cog):
             )
 
         party_list = ""
-        for idol in idol_list:
-            if idol[0] < 10:
+        for i in range(10):
+            if idol_list[i][0] < 10:
                 #spaces = " " #n-space
                 #spaces = "⠀" #braille blank
                 spaces = " " #figure space (numerical digits) U+2007
-            elif idol[0] >= 10 and idol[0] <100:
+            elif idol_list[i][0] >= 10 and idol_list[i][0] <100:
                 spaces = ""
-            party_list += "`" + spaces + f"{idol[0]}` {idol[1]}\n"
+            party_list += "`" + spaces + f"{idol_list[i][0]}` {idol_list[i][1]}\n"
         if (len(idol_list) == 0):
             party_list = "Party is empty -- Use `!gacha` to catch an idol!"
         card.add_field(
-            name=f"\n{ctx.author.name}'s Party:",
+            name=f"\n{ctx.author.name}'s Top 10 Party Members:",
             value=party_list,
             inline=False
         )
