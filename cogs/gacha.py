@@ -402,7 +402,7 @@ class Gacha(commands.Cog):
         #view = ActiveTitleSelectMenu(player_id, titles)
         #view.message = await ctx.send("Choose one to set as your Active Title:", view=view)
         #data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        formatter = IdolsListPagesFormatter(idols, per_page=5)
+        formatter = IdolsListPagesFormatter(idols, per_page=10)
         menu = IdolsListPages(formatter)
         await menu.start(ctx)
 
