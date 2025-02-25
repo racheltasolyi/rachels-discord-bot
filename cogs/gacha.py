@@ -1,6 +1,7 @@
 import os
 import discord
-from discord.ext import commands
+from discord.ext import commands, menus
+from discord.ext.menus import button, First, Last
 import random
 import sqlite3
 
@@ -313,18 +314,18 @@ class Gacha(commands.Cog):
             )
 
         party_list = ""
-        for idol in idol_list:
-            if idol[0] < 10:
+        for i in range(10):
+            if idol_list[i][0] < 10:
                 #spaces = " " #n-space
                 #spaces = "⠀" #braille blank
                 spaces = " " #figure space (numerical digits) U+2007
-            elif idol[0] >= 10 and idol[0] <100:
+            elif idol_list[i][0] >= 10 and idol_list[i][0] <100:
                 spaces = ""
-            party_list += "`" + spaces + f"{idol[0]}` {idol[1]}\n"
+            party_list += "`" + spaces + f"{idol_list[i][0]}` {idol_list[i][1]}\n"
         if (len(idol_list) == 0):
             party_list = "Party is empty -- Use `!gacha` to catch an idol!"
         card.add_field(
-            name=f"\n{ctx.author.name}'s Party:",
+            name=f"\n{ctx.author.name}'s Top 10 Party Members:",
             value=party_list,
             inline=False
         )
@@ -350,7 +351,6 @@ class Gacha(commands.Cog):
     async def activetitle(self, ctx):
         
         ### FETCH PLAYER'S TITLES ###
-        ### FETCH IDOL ###
         player_id = ctx.author.id
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
@@ -374,6 +374,40 @@ class Gacha(commands.Cog):
 
         connection.commit()
         connection.close()
+    
+    ### !IDOLS COMMAND: DISPLAY PLAYER'S IDOLS IN A PAGINATED MENU ###
+    @commands.command(aliases=["party"])
+    async def idols(self, ctx):
+        
+        ### FETCH PLAYER'S IDOLS ###
+        player_id = ctx.author.id
+        connection = sqlite3.connect("./cogs/idol_gacha.db")
+        cursor = connection.cursor()
+        cursor.execute("""SELECT Idols.idol_id, Idols.idol_name, Groups.group_name
+                        FROM GroupMembers
+                        INNER JOIN Idols ON GroupMembers.idol_id = Idols.idol_id
+                        INNER JOIN Groups ON GroupMembers.group_id = Groups.group_id
+                        WHERE player_id = :player_id""",
+                        {'player_id': player_id})
+        idols = cursor.fetchall()
+        print(idols)
+
+        ### ERROR MESSAGE IF PLAYER NOT FOUND ###
+        '''if titles is None:
+            await ctx.send(f"ERROR: Player <@{player_id}> not found. Use `!gacha` to start the game!")
+            connection.close()
+            return'''
+        
+        ### SEND IDOLS LIST ###
+        #view = ActiveTitleSelectMenu(player_id, titles)
+        #view.message = await ctx.send("Choose one to set as your Active Title:", view=view)
+        #data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        formatter = IdolsListPagesFormatter(idols, per_page=10)
+        menu = IdolsListPages(formatter)
+        await menu.start(ctx)
+
+        #connection.commit()
+        #connection.close()
 
     ### !RESETGACHA ADMIN COMMAND: RESET GACHA GAME ###
     @commands.command(aliases=["rg"])
@@ -986,7 +1020,7 @@ class ActiveTitleSelectMenu(discord.ui.View):
 
     ### MENU TIMES OUT AFTER 60 SECONDS ###
     def __init__(self, caller_id, titles):
-        super().__init__(timeout=5)
+        super().__init__(timeout=60)
         self.caller_id = caller_id
 
         options = []
@@ -1069,6 +1103,95 @@ class ActiveTitleSelectMenu(discord.ui.View):
 
         await interaction.followup.send(content=content)
 
+
+class IdolsListPages(discord.ui.View, menus.MenuPages):
+
+    ### MENU TIMES OUT AFTER 60 SECONDS ###
+    def __init__(self, source):
+        super().__init__(timeout=60)
+        self._source = source
+        self.current_page = 0
+        self.ctx = None
+        self.message = None
+
+    ### BUTTONS DISABLE UPON TIMEOUT ###
+    async def on_timeout(self) -> None:
+        for child in self.children:
+            if not child.disabled:
+                child.disabled = True
+        await self.message.edit(view=self)
+
+    async def start(self, ctx, *, channel=None, wait=False):
+        # We wont be using wait/channel, you can implement them yourself. This is to match the MenuPages signature.
+        await self._source._prepare_once()
+        self.ctx = ctx
+        self.message = await self.send_initial_message(ctx, ctx.channel)
+
+    async def _get_kwargs_from_page(self, page):
+        """This method calls ListPageSource.format_page class"""
+        value = await super()._get_kwargs_from_page(page)
+        if 'view' not in value:
+            value.update({'view': self})
+        return value
+
+    async def interaction_check(self, interaction):
+        """Only allow the author that invoke the command to be able to use the interaction"""
+        return interaction.user == self.ctx.author
+
+    @discord.ui.button(emoji='⏮️', style=discord.ButtonStyle.blurple)
+    async def first_page(self, interaction, button):
+        await self.show_page(0)
+        await interaction.response.defer()
+
+    @discord.ui.button(emoji='◀️', style=discord.ButtonStyle.blurple)
+    async def before_page(self, interaction, button):
+        await self.show_checked_page(self.current_page - 1)
+        await interaction.response.defer()
+
+    @discord.ui.button(emoji='▶️', style=discord.ButtonStyle.blurple)
+    async def next_page(self, interaction, button):
+        await self.show_checked_page(self.current_page + 1)
+        await interaction.response.defer()
+
+    @discord.ui.button(emoji='⏭️', style=discord.ButtonStyle.blurple)
+    async def last_page(self, interaction, button):
+        await self.show_page(self._source.get_max_pages() - 1)
+        await interaction.response.defer()
+    
+    @discord.ui.button(emoji='⏹️', style=discord.ButtonStyle.gray)
+    async def stop_page(self, interaction, button):
+        self.stop()
+        for child in self.children:
+            if not child.disabled:
+                child.disabled = True
+        await self.message.edit(view=self)
+        #await self.message.edit(view=None)
+        await interaction.response.defer()
+
+
+class IdolsListPagesFormatter(menus.ListPageSource):
+    async def format_page(self, menu, entries):
+        embed = discord.Embed(
+            title=f"{menu.ctx.author}'s Party",
+            color=discord.Color.green()
+        )
+
+        party_list = ""
+        for idol in entries:
+            if idol[0] < 10:
+                spaces = " " #figure space (numerical digits) U+2007
+            elif idol[0] >= 10 and idol[0] <100:
+                spaces = ""
+            party_list += "`" + spaces + f"{idol[0]}` `{idol[2]}` {idol[1]}\n"
+        embed.add_field(
+            name="",
+            value=party_list,
+            inline=False
+        )
+
+        #embed.set_footer(text=f"{self.get_page}")
+        return embed
+    
 
 async def setup(bot):
     await bot.add_cog(Gacha(bot))
