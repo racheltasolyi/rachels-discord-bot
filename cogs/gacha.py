@@ -851,7 +851,7 @@ class GachaButtonMenu(discord.ui.View):
 
     ### BUTTON TIMES OUT AFTER 60 SECONDS ###
     def __init__(self, roll_number, roller_id):
-        super().__init__(timeout=5)
+        super().__init__(timeout=10)
         self.roll_number = roll_number
         self.roller_id = roller_id
 
@@ -867,7 +867,6 @@ class GachaButtonMenu(discord.ui.View):
     @discord.ui.button(label="Throw Pokeball", style=discord.ButtonStyle.blurple)
     async def throwpokeball(self, interaction: discord.Interaction, button: discord.ui.Button):
         userid = interaction.user.id
-        roller = self.roller_id
 
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
@@ -883,28 +882,30 @@ class GachaButtonMenu(discord.ui.View):
 
         ### SUCCESSFULLY CATCH IDOL IF CORRECT PLAYER, THEN DISABLE BUTTON ###
         if (userid == self.roller_id):
-            if (roll[3] == 0 or roll[3] == None):
-                roll_claimed = False
-            else:
-                roll_claimed = True
-            
-            if not roll_claimed:
-                cursor.execute("""UPDATE Idols
-                                SET player_id = :userid
-                                WHERE idol_id = :roll_number""",
-                                {'userid': userid, 'roll_number': self.roll_number})
-                content=f"{roll_name} was caught by {interaction.user.mention}!"
-                for button in self.children:
-                    button.disabled = True
-                    button.label = f"{roll_name} has been caught!"
-                await self.message.edit(view=self)
-                #print(roll)
-            else:
-                content=f"You already caught {roll_name}!"
+            ### GET PLAYER'S NEXT AVAILABLE POSITION ###
+            cursor.execute("""SELECT party_position FROM PartyPositions
+                            WHERE (player_id = :roller_id AND idol_id IS NULL)""",
+                            {'roller_id': self.roller_id})
+            party_position = cursor.fetchone()[0]
+            print(party_position)
+
+            ### ADD IDOL ID TO CORRECT PARTY POSITION ##
+            cursor.execute("""UPDATE PartyPositions
+                            SET idol_id = :roll_number
+                            WHERE (player_id = :roller_id AND party_position = :party_position)""",
+                            {'roll_number': self.roll_number,
+                             'roller_id': self.roller_id,
+                             'party_position': party_position})
+            content=f"{roll_name} was caught by {interaction.user.mention}!"
+            for button in self.children:
+                button.disabled = True
+                button.label = f"{roll_name} has been caught!"
+            await self.message.edit(view=self)
+            #print(roll)
 
         ### FAIL IF DIFFERENT PLAYER ###
         else:
-            content=f"Nice try {interaction.user.mention}, {roll_name} can only be caught by <@{roller}> this time!"
+            content=f"Nice try {interaction.user.mention}, {roll_name} can only be caught by <@{self.roller_id}> this time!"
         
         connection.commit()
         connection.close()
@@ -958,7 +959,7 @@ class ReleaseButtonMenu(discord.ui.View):
         ### RELEASE IDOL IF CORRECT USER, THEN DISABLE MENU ###
         if (user_id == owner_id):
             cursor.execute("""UPDATE Idols SET player_id = NULL
-                            WHERE idol_id == :idol_id""",
+                            WHERE idol_id = :idol_id""",
                             {'idol_id': self.idol_id})
             content=f"{self.idol_name} has been released from <@{owner_id}>'s party."
 
@@ -1121,6 +1122,7 @@ class ActiveTitleSelectMenu(discord.ui.View):
         await interaction.followup.send(content=content)
 
 
+### BUTTON MENU FOR !IDOLS ###
 class IdolsListPages(discord.ui.View, menus.MenuPages):
 
     ### MENU TIMES OUT AFTER 60 SECONDS ###
@@ -1186,6 +1188,7 @@ class IdolsListPages(discord.ui.View, menus.MenuPages):
         await interaction.response.defer()
 
 
+### FORMATS PAGES FOR !IDOLS ###
 class IdolsListPagesFormatter(menus.ListPageSource):
     async def format_page(self, menu, entries):
         embed = discord.Embed(
