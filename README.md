@@ -6,7 +6,7 @@
   - Sends the idol card and asks for confirmation
   - "Cancel" button cancels the command
 - **!profile | !p**: Displays player's profile with their earned titles and current party members
-  - Currently may not work if the player has no idols in their party
+  - Currently broken
 - **!idols | !party**: Displays a paginated list of all idols in the player's party
 - **!activetitle | !picktitle | !title**: Sends a dropdown menu which lets the player change their active title
 - **!resetgacha | !rg**: Admin only. Releases all caught idols back into the wild

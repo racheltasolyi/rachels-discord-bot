@@ -425,8 +425,8 @@ class Gacha(commands.Cog):
             ### RELEASE ALL IDOLS BACK INTO THE WILD ###
             connection = sqlite3.connect("./cogs/idol_gacha.db")
             cursor = connection.cursor()
-            cursor.execute("""UPDATE Idols SET player_id = 0
-                              WHERE (player_id IS NOT NULL AND player_id != 0)""")
+            cursor.execute("""UPDATE Idols SET player_id = NULL
+                              WHERE (player_id IS NOT NULL AND player_id IS NOT NULL)""")
 
             await ctx.send("Gacha has been reset.")
             connection.commit()
@@ -940,7 +940,7 @@ class ReleaseButtonMenu(discord.ui.View):
 
         ### RELEASE IDOL IF CORRECT USER, THEN DISABLE MENU ###
         if (user_id == owner_id):
-            cursor.execute("""UPDATE Idols SET player_id = 0
+            cursor.execute("""UPDATE Idols SET player_id = NULL
                             WHERE idol_id == :idol_id""",
                             {'idol_id': self.idol_id})
             content=f"{self.idol_name} has been released from <@{owner_id}>'s party."
