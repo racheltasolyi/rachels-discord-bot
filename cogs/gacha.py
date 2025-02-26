@@ -51,9 +51,7 @@ class Gacha(commands.Cog):
         
         ### IF PLAYER IS NEW, ADD NEW PLAYER TO DATABASE ###
         if player is None:
-            cursor.execute("""INSERT INTO Players (player_id, player_username)
-                              Values (:roller_id, :roller_username)""",
-                            {'roller_id': roller_id, 'roller_username': ctx.author.name})
+            self.createplayer(ctx, cursor)
 
         ### FETCH THE ROLLED IDOL AND THEIR GROUP ###
         cursor.execute("""SELECT * FROM Idols
@@ -827,6 +825,25 @@ class Gacha(commands.Cog):
         ### FAIL IF USER IS NOT ADMIN ###
         else:
             await ctx.send("You do not have permission for this command.")
+    
+    ### ADD NEW PLAYER TO DATABASE ###
+    def createplayer(self, ctx, cursor):
+
+        player_id = ctx.author.id
+        
+        ### ADD NEW PLAYER TO PLAYERS ###
+        cursor.execute("""INSERT INTO Players (player_id, player_username)
+                            Values (:player_id, :player_username)""",
+                        {'player_id': player_id, 'player_username': ctx.author.name})
+        
+        ### ADD PARTY SIZE OF 10 TO PLAYER ###
+        for position in range(1, 11):
+            cursor.execute("""INSERT INTO PartyPositions (player_id, party_position)
+                                Values (:player_id, :position)""",
+                            {'player_id': player_id, 'position': position})
+        
+        cursor.connection.commit()
+
 
 ### BUTTON MENU TO CATCH IDOLS ###
 class GachaButtonMenu(discord.ui.View):
