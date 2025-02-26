@@ -2,18 +2,30 @@
 - **!gacha | !g**: Rolls a random idol card that you can catch with a Pokeball
   - Idols can only be caught by the user who rolled them
   - **!gacha [x] | !g**: Admin only. Rolls the idol whose Idol ID matches [x]
-- **!release [x] | !r**: Releases the idol named [x] from player's party
-  - Spelling and Capitalization must match database
+- **!release [x] | !r**: Releases the idol with the ID of [x] from player's party
+  - Sends the idol card and asks for confirmation
+  - "Cancel" button cancels the command
 - **!profile | !p**: Displays player's profile with their earned titles and current party members
+  - Currently broken
+- **!idols | !party**: Displays a paginated list of all idols in the player's party
+- **!activetitle | !picktitle | !title**: Sends a dropdown menu which lets the player change their active title
 - **!resetgacha | !rg**: Admin only. Releases all caught idols back into the wild
-- **!addachievement "[x]" | !newachievement "[x]"**: Admin only. Adds a new achievement named [x] to the database
-  - Optional 2nd argument for the new achievement's ID
+- **!addtitle "[x]" | !newtitle "[x]"**: Admin only. Adds a new title named [x] to the database
+  - Optional 2nd argument for the new title's ID
 - **!addgroup "[x]" "[x.jpg]" (a) (g) | !newgroup | !addg | !newg**: Admin only. Adds a new group named [x] to the database with the logo file [x.jpg]
-  - Optional 3rd argument for the new group's associated achievement_id
+  - Optional 3rd argument for the new group's associated title_id
   - Optional 4th argument for the new group's ID
 - **!addidol "[x]" "[x.jpg]" (g) (i) | !newidol | !addi | !newi**: Admin only. Adds a new idol named [x] to the database with the image file [x.jpg]
   - Optional 3rd argument for the new idol's group ID [g] (leave blank for Soloist)
   - Optional 4th argument for the new idol's ID [i]
+- **!resetrolls [x] | !rr [x]**: Admin only. Resets the user [x]'s rolls to max
+  - [x] can be an @ of the user or the user's ID
+- **!setrolls [x] [i] | !sr [x] [i]**: Admin only. Sets the user [x]'s rolls to [i]
+  - [x] can be an @ of the user or the user's ID
+  - [i] must be at least 0
+- **!addroll [x] (i) | !ar [x] (i)**: Admin only. Increases the user [x]'s rolls by [i] (default is +1)
+  - [x] can be an @ of the user or the user's ID
+  - [i] must be greater than 0
 
 
 ## Other Commands/Features (in order they were added)
@@ -58,6 +70,7 @@
       - Or `CTRL`+`Shift`+`P` to open the command palette on Windows, then select "Format Document"
 11. In the terminal, run `install discord`, `pip install easy-pil`, and `pip install asyncpraw` if necessary (add ` --user` at the end if you run into any permissions issues)
     - If asyncpraw is outdated, run `pip install --upgrade https://github.com/praw-dev/asyncpraw/archive/master.zip` to update to latest version
+12. In the terminal, run `python -m pip install -U git+https://github.com/Rapptz/discord-ext-menus` for the discord.menus extension
    
 
 
