@@ -826,7 +826,7 @@ class Gacha(commands.Cog):
         else:
             await ctx.send("You do not have permission for this command.")
     
-    ### ADD NEW PLAYER TO DATABASE ###
+    ### PRIVATE FUNCTION: ADD NEW PLAYER TO DATABASE ###
     def createplayer(self, ctx, cursor):
 
         player_id = ctx.author.id
