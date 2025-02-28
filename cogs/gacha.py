@@ -178,7 +178,7 @@ class Gacha(commands.Cog):
                             WHERE Idols.idol_id = :idol_id""",
                             {'idol_id': idol_id})
             idol = cursor.fetchone()
-            print(idol)
+            #print(idol)
 
             ### ERROR MESSAGE IF IDOL DOES NOT EXIST ###
             if idol is None:
