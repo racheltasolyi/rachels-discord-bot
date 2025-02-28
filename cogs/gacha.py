@@ -21,6 +21,9 @@ class Gacha(commands.Cog):
         roller_id = ctx.author.id
         #print(f"roller_id = {roller_id}")
 
+        ### SPECIFY HIGHEST IDOL ID ###
+        len_idols = 42
+
         ### ADMIN COMMAND: ROLL SPECIFIED IDOL ###
         if (arg != None):
             with open("./admin.txt") as file:
@@ -35,9 +38,14 @@ class Gacha(commands.Cog):
         ### DETERMINE ROLL NUMBER ###
         else:
             #roll_number = 29
-            roll_number = random.randrange(30)
+            roll_number = random.randrange(len_idols + 1) # excludes last number
             
         print(roll_number)
+
+        ### ERROR MESSAGE IF INVALID IDOL ID ###
+        if (roll_number < 0 or roll_number > len_idols):
+            await ctx.send(f"ERROR: Invalid Idol ID: {roll_number}")
+            return
 
         ### FETCH PLAYER ###
         connection = sqlite3.connect("./cogs/idol_gacha.db")
@@ -48,53 +56,55 @@ class Gacha(commands.Cog):
                           WHERE player_id = :roller_id""",
                         {'roller_id': roller_id})
         player = cursor.fetchone()
+        #print(player)
         
         ### IF PLAYER IS NEW, ADD NEW PLAYER TO DATABASE ###
         if player is None:
-            cursor.execute("""INSERT INTO Players (player_id, player_username)
-                              Values (:roller_id, :roller_username)""",
-                            {'roller_id': roller_id, 'roller_username': ctx.author.name})
+            self.createplayer(ctx, cursor)
+            cursor.execute("""SELECT * FROM Players
+                            WHERE player_id = :roller_id""",
+                            {'roller_id': roller_id})
+            player = cursor.fetchone()
+            #print(player)
 
         ### FETCH THE ROLLED IDOL AND THEIR GROUP ###
-        cursor.execute("""SELECT * FROM Idols
-                          WHERE idol_id = :roll_number""",
+        cursor.execute("""SELECT Idols.idol_name, Idols.idol_image, GroupMembers.group_id, Groups.group_name, Groups.group_logo
+                        FROM GroupMembers
+                        INNER JOIN Groups ON GroupMembers.group_id = Groups.group_id
+                        INNER JOIN Idols ON GroupMembers.idol_id = Idols.idol_id
+                        WHERE GroupMembers.idol_id = :roll_number""",
                         {'roll_number': roll_number})
         roll = cursor.fetchone()
+        #print(roll)
         if roll is None:
             await ctx.send("ERROR: The rolled idol does not exist.")
             connection.close()
             return
-        cursor.execute("""SELECT group_id FROM GroupMembers
-                          WHERE idol_id = :roll_number""",
-                        {'roll_number': roll_number})
-        roll_group_id = cursor.fetchone()[0]
-        #print(roll_group_id)
+        
+        ### GET IDOL'S INFORMATION ###
+        roll_name, roll_image, roll_group_id, roll_group_name, roll_logo = roll
+
+        ### ERROR IF GROUP INFORMATION CAN NOT BE FOUND ###
         if roll_group_id is None:
-            await ctx.send("ERROR: The rolled idol's Group ID does not exist.")
-            connection.close()
-            return
-        cursor.execute("""SELECT * FROM Groups
-                          WHERE group_id = :roll_group_id""",
-                        {'roll_group_id': roll_group_id})
-        roll_group = cursor.fetchone()
-        #print(roll_group)
-        if roll_group is None:
             await ctx.send("ERROR: The rolled idol's Group does not exist.")
             connection.close()
             return
-        #print("Got card data!")
 
-        ### BUILD IDOL CARD ###
-        roll_name = roll[1]
-        roll_group_name = roll_group[1]
-        roll_image = roll[2]
-        roll_logo = roll_group[2]
-        if (roll[3] == 0 or roll[3] == None):
+        ### DETERMINE IF ROLL IS OWNED OR WILD ###
+        cursor.execute("""SELECT PartyPositions.player_id
+                        FROM PartyPositions
+                        INNER JOIN Idols ON PartyPositions.idol_id = Idols.idol_id
+                        WHERE PartyPositions.idol_id = :roll_number""",
+                        {'roll_number': roll_number})
+        owner_id = cursor.fetchone()
+        #print(owner_id)
+        if owner_id is None:
             roll_claimed = False
         else:
+            owner_id = owner_id[0]
             roll_claimed = True
-        #print(roll_name)
 
+        ### BUILD IDOL CARD ###
         uploaded_roll_image = discord.File(f"./cogs/gacha_images/idols/{roll_image}", filename=roll_image)
         if roll_logo is not None:
             uploaded_roll_logo = discord.File(f"./cogs/gacha_images/logos/{roll_logo}", filename=roll_logo)
@@ -109,10 +119,7 @@ class Gacha(commands.Cog):
 
         ### DISPLAY IDOL CARD WITH CATCH BUTTON, DEPENDING ON WHETHER IT IS CLAIMED OR NOT ###
         if roll_claimed:
-            roll_owner_id = roll[3]
-            roll_owner = await ctx.bot.fetch_user(roll_owner_id)
-            #print(roll_owner_id)
-            #print(roll_owner)
+            roll_owner = await ctx.bot.fetch_user(owner_id)
             card.add_field(
                 name=f"{roll_name}'s heart already belongs to **{roll_owner}**!",
                 value=f"{roll_name} can no longer be caught.",
@@ -165,21 +172,22 @@ class Gacha(commands.Cog):
         else:
             connection = sqlite3.connect("./cogs/idol_gacha.db")
             cursor = connection.cursor()
-            cursor.execute("""SELECT * FROM Idols
-                            WHERE idol_id = :arg""",
-                            {'arg': idol_id})
+            cursor.execute("""SELECT Idols.idol_name, Idols.idol_image, PartyPositions.player_id
+                            FROM PartyPositions
+                            LEFT JOIN Idols ON PartyPositions.idol_id = Idols.idol_id
+                            WHERE Idols.idol_id = :idol_id""",
+                            {'idol_id': idol_id})
             idol = cursor.fetchone()
+            #print(idol)
 
             ### ERROR MESSAGE IF IDOL DOES NOT EXIST ###
             if idol is None:
-                await ctx.send(f"ERROR: No idols with the ID of {idol_id} can be found. Use !profile to check the IDs of your idols.")
+                await ctx.send(f"ERROR: The idol could not be found in your party. Use !profile to check the IDs of your idols.")
                 connection.close()
                 return
 
             ### GET IDOL'S INFO ###
-            idol_name = idol[1]
-            idol_image = idol[2]
-            owner_id = idol[3]
+            idol_name, idol_image, owner_id = idol
             
             ### IF PLAYER IS OWNER, SEND CONFIRMATION CARD ###
             if ctx.author.id == owner_id:
@@ -205,7 +213,7 @@ class Gacha(commands.Cog):
                 card.add_field(name=f"Are you sure you want to release {idol_name}?", value="This action cannot be reversed.", inline=False)
 
                 ### SEND CARD WITH RELEASE BUTTON ###
-                view = ReleaseButtonMenu(idol_id)
+                view = ReleaseButtonMenu(idol_id, owner_id)
                 if group_logo:
                     view.message = await ctx.send(files=[uploaded_idol_image, uploaded_group_logo], embed=card, view=view)
                 else:
@@ -236,35 +244,36 @@ class Gacha(commands.Cog):
                         {'player_id': player_id})
         player = cursor.fetchone()
         
-        ### IF PLAYER IS NEW, THROW ERROR (LATER: ADD NEW PLAYER TO DATABASE) ###
+        ### IF PLAYER IS NEW, ADD NEW PLAYER TO DATABASE ###
         if player is None:
-            # should create new helper function to create new player?
-            await ctx.send("ERROR: Player not found. Use `!gacha` to start the game and catch your first idol!")
-            connection.close()
-            return
+            self.createplayer(ctx, cursor)
+            cursor.execute("""SELECT * FROM Players
+                            WHERE player_id = :roller_id""",
+                            {'roller_id': player_id})
+            player = cursor.fetchone()
 
         ### FETCH ALL OF PLAYER'S IDOLS ###
-        cursor.execute("""SELECT * FROM Idols
-                          WHERE player_id = :player_id""",
+        cursor.execute("""SELECT PartyPositions.idol_id, Idols.idol_name, Idols.idol_image
+                        FROM PartyPositions
+                        INNER JOIN Idols ON PartyPositions.idol_id = Idols.idol_id
+                        WHERE player_id = :player_id""",
                         {'player_id': player_id})
         idol_list = cursor.fetchall()
         print(idol_list)
 
         ### FETCH PLAYER'S ACTIVE TITLE & LOGO ###
-        cursor.execute("""SELECT COALESCE(TitleList.title_name, 'Trainee') AS title_name, Groups.group_logo
+        cursor.execute("""SELECT TitleList.title_name, Groups.group_logo
                         FROM CompletedTitles
                         INNER JOIN TitleList ON CompletedTitles.title_id = TitleList.title_id
                         LEFT JOIN Groups ON CompletedTitles.title_id = Groups.title_id
-                        WHERE CompletedTitles.player_id = :player_id 
-                        AND CompletedTitles.active_title = 1""",
+                        WHERE (CompletedTitles.player_id = :player_id AND CompletedTitles.active_title = 1)""",
                         {'player_id': player_id})
-        active_title_query = cursor.fetchone()
-        if active_title_query is None:
+        active_title = cursor.fetchone()
+        if active_title is None:
             active_title_name = "Trainee"
             active_logo = None
         else:
-            active_title_name = active_title_query[0]
-            active_logo = active_title_query[1]
+            active_title_name, active_logo = active_title
         print(active_title_name)
         print(active_logo)
 
@@ -275,46 +284,42 @@ class Gacha(commands.Cog):
                         WHERE CompletedTitles.player_id = :player_id 
                         AND CompletedTitles.active_title = 0""",
                         {'player_id': player_id})
-        title_list_query = cursor.fetchall()
-        title_list = ""
-        for title in title_list_query:
-            title_list += f"* {title[0]}\n"
-
-        ### FETCH PLAYER'S CHOSEN IDOL IMAGE ###
-        if (len(idol_list) > 0):
-            active_idol = idol_list[0]
-            active_idol_image = active_idol[2]
-            #print(active_idol_image)
+        titles = cursor.fetchall()
+        formatted_titles = ""
+        for title in titles:
+            formatted_titles += f"* {title[0]}\n"
+        #print(titles)
 
         ### BUILD PLAYER PROFILE CARD ###
-        if (len(idol_list) > 0):
-            uploaded_active_idol_image = discord.File(f"./cogs/gacha_images/idols/{active_idol_image}", filename=active_idol_image)
+        card = discord.Embed(
+            title=f"{ctx.author.name}'s Idol Catcher Profile",
+            description=f"### {active_title_name}",
+            color=discord.Color.green())
+
         if active_logo is not None:
-            #debugging
-            try:
-                uploaded_active_logo = discord.File(f"./cogs/gacha_images/logos/{active_logo}", filename=active_logo)
-            except Exception as e:
-                print(f"Error loading logo file: {e}")
-                uploaded_active_logo = None
-            #uploaded_active_logo = discord.File(f"./cogs/gacha_images/logos/{active_logo}", filename=active_logo)
-        
-        card = discord.Embed(title=f"{ctx.author.name}'s Idol Catcher Profile", description=f"### {active_title_name}", color=discord.Color.green())
-        if active_logo is not None:
+            uploaded_active_logo = discord.File(f"./cogs/gacha_images/logos/{active_logo}", filename=active_logo)
             card.set_thumbnail(url=f"attachment://{active_logo}")
         else:
             card.set_thumbnail(url=ctx.author.avatar)
+        
+        ### FETCH & SET PLAYER'S ACTIVE IDOL IMAGE ###
         if (len(idol_list) > 0):
+            active_idol_image = idol_list[0][2]
+            uploaded_active_idol_image = discord.File(f"./cogs/gacha_images/idols/{active_idol_image}", filename=active_idol_image)
             card.set_image(url=f"attachment://{active_idol_image}")
 
-        if title_list_query:
+        ### ADD TITLES IF ANY ###
+        if len(titles) > 0:
             card.add_field(
-                name=f"\n{ctx.author.name}'s Titles:",
-                value=title_list,
-                inline=False
-            )
+                name=f"Titles:",
+                value=formatted_titles,
+                inline=False)
 
+        ### DISPLAY IDOLS IF ANY ###
         party_list = ""
         for i in range(10):
+            if i >= len(idol_list):
+                break
             if idol_list[i][0] < 10:
                 #spaces = " " #n-space
                 #spaces = "⠀" #braille blank
@@ -325,7 +330,7 @@ class Gacha(commands.Cog):
         if (len(idol_list) == 0):
             party_list = "Party is empty -- Use `!gacha` to catch an idol!"
         card.add_field(
-            name=f"\n{ctx.author.name}'s Top 10 Party Members:",
+            name=f"Top 10 Party Members:",
             value=party_list,
             inline=False
         )
@@ -333,15 +338,14 @@ class Gacha(commands.Cog):
         #print("Embed created!")
 
         ### DISPLAY PLAYER PROFILE CARD ###
-        if (len(idol_list) == 0) and active_logo is None:
+        if (len(idol_list) == 0) and active_logo is None: # no idols and no logo
             await ctx.send(embed=card)
-        elif active_logo is None:
+        elif (len(idol_list) == 0) and active_logo: # has logo but no idols
+            await ctx.send(files=[uploaded_active_logo], embed=card)
+        elif active_logo is None: # has idols but no logo
             await ctx.send(files=[uploaded_active_idol_image], embed=card)
-        else:
-            #debugging
-            files=[uploaded_active_idol_image, uploaded_active_logo]
-            print(f"Files to send: {[file.filename for file in files]}")
-            await ctx.send(files=files, embed=card)
+        else: # has both idols and logo
+            await ctx.send(files=[uploaded_active_idol_image, uploaded_active_logo], embed=card)
 
         connection.commit()
         connection.close()
@@ -387,10 +391,11 @@ class Gacha(commands.Cog):
                         FROM GroupMembers
                         INNER JOIN Idols ON GroupMembers.idol_id = Idols.idol_id
                         INNER JOIN Groups ON GroupMembers.group_id = Groups.group_id
-                        WHERE player_id = :player_id""",
+                        INNER JOIN PartyPositions ON PartyPositions.idol_id = GroupMembers.idol_id
+                        WHERE PartyPositions.player_id = :player_id""",
                         {'player_id': player_id})
         idols = cursor.fetchall()
-        print(idols)
+        #print(idols)
 
         ### ERROR MESSAGE IF PLAYER NOT FOUND ###
         '''if titles is None:
@@ -425,8 +430,8 @@ class Gacha(commands.Cog):
             ### RELEASE ALL IDOLS BACK INTO THE WILD ###
             connection = sqlite3.connect("./cogs/idol_gacha.db")
             cursor = connection.cursor()
-            cursor.execute("""UPDATE Idols SET player_id = NULL
-                              WHERE (player_id IS NOT NULL AND player_id IS NOT NULL)""")
+            cursor.execute("""UPDATE PartyPositions SET idol_id = NULL
+                              WHERE idol_id IS NOT NULL""")
 
             await ctx.send("Gacha has been reset.")
             connection.commit()
@@ -827,6 +832,25 @@ class Gacha(commands.Cog):
         ### FAIL IF USER IS NOT ADMIN ###
         else:
             await ctx.send("You do not have permission for this command.")
+    
+    ### PRIVATE FUNCTION: ADD NEW PLAYER TO DATABASE ###
+    def createplayer(self, ctx, cursor):
+
+        player_id = ctx.author.id
+        
+        ### ADD NEW PLAYER TO PLAYERS ###
+        cursor.execute("""INSERT INTO Players (player_id, player_username)
+                            Values (:player_id, :player_username)""",
+                        {'player_id': player_id, 'player_username': ctx.author.name})
+        
+        ### ADD PARTY SIZE OF 10 TO PLAYER ###
+        for position in range(1, 11):
+            cursor.execute("""INSERT INTO PartyPositions (player_id, party_position)
+                                Values (:player_id, :position)""",
+                            {'player_id': player_id, 'position': position})
+        
+        cursor.connection.commit()
+
 
 ### BUTTON MENU TO CATCH IDOLS ###
 class GachaButtonMenu(discord.ui.View):
@@ -834,7 +858,7 @@ class GachaButtonMenu(discord.ui.View):
 
     ### BUTTON TIMES OUT AFTER 60 SECONDS ###
     def __init__(self, roll_number, roller_id):
-        super().__init__(timeout=5)
+        super().__init__(timeout=10)
         self.roll_number = roll_number
         self.roller_id = roller_id
 
@@ -850,7 +874,6 @@ class GachaButtonMenu(discord.ui.View):
     @discord.ui.button(label="Throw Pokeball", style=discord.ButtonStyle.blurple)
     async def throwpokeball(self, interaction: discord.Interaction, button: discord.ui.Button):
         userid = interaction.user.id
-        roller = self.roller_id
 
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
@@ -866,28 +889,30 @@ class GachaButtonMenu(discord.ui.View):
 
         ### SUCCESSFULLY CATCH IDOL IF CORRECT PLAYER, THEN DISABLE BUTTON ###
         if (userid == self.roller_id):
-            if (roll[3] == 0 or roll[3] == None):
-                roll_claimed = False
-            else:
-                roll_claimed = True
-            
-            if not roll_claimed:
-                cursor.execute("""UPDATE Idols
-                                SET player_id = :userid
-                                WHERE idol_id = :roll_number""",
-                                {'userid': userid, 'roll_number': self.roll_number})
-                content=f"{roll_name} was caught by {interaction.user.mention}!"
-                for button in self.children:
-                    button.disabled = True
-                    button.label = f"{roll_name} has been caught!"
-                await self.message.edit(view=self)
-                #print(roll)
-            else:
-                content=f"You already caught {roll_name}!"
+            ### GET PLAYER'S NEXT AVAILABLE POSITION ###
+            cursor.execute("""SELECT party_position FROM PartyPositions
+                            WHERE (player_id = :roller_id AND idol_id IS NULL)""",
+                            {'roller_id': self.roller_id})
+            party_position = cursor.fetchone()[0]
+            print(party_position)
+
+            ### ADD IDOL ID TO CORRECT PARTY POSITION ##
+            cursor.execute("""UPDATE PartyPositions
+                            SET idol_id = :roll_number
+                            WHERE (player_id = :roller_id AND party_position = :party_position)""",
+                            {'roll_number': self.roll_number,
+                             'roller_id': self.roller_id,
+                             'party_position': party_position})
+            content=f"{roll_name} was caught by {interaction.user.mention}!"
+            for button in self.children:
+                button.disabled = True
+                button.label = f"{roll_name} has been caught!"
+            await self.message.edit(view=self)
+            #print(roll)
 
         ### FAIL IF DIFFERENT PLAYER ###
         else:
-            content=f"Nice try {interaction.user.mention}, {roll_name} can only be caught by <@{roller}> this time!"
+            content=f"Nice try {interaction.user.mention}, {roll_name} can only be caught by <@{self.roller_id}> this time!"
         
         connection.commit()
         connection.close()
@@ -898,22 +923,22 @@ class GachaButtonMenu(discord.ui.View):
 ### BUTTON MENU FOR !RELEASE CONFIRMATION ###
 class ReleaseButtonMenu(discord.ui.View):
     idol_id = None
+    owner_id = None
     idol_name = None
-    caller_id = None
 
     ### MENU TIMES OUT AFTER 60 SECONDS ###
-    def __init__(self, idol_id):
+    def __init__(self, idol_id, owner_id):
         super().__init__(timeout=60)
         self.idol_id = idol_id
+        self.owner_id = owner_id
 
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
         cursor.execute("""SELECT * FROM Idols
-                          WHERE idol_id = :roll_number""",
-                        {'roll_number': self.idol_id})
+                          WHERE idol_id = :idol_id""",
+                        {'idol_id': self.idol_id})
         idol = cursor.fetchone()
         self.idol_name = idol[1]
-        self.caller_id = idol[3]
         connection.commit()
         connection.close()
 
@@ -931,30 +956,44 @@ class ReleaseButtonMenu(discord.ui.View):
     async def releaseconfirmation(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = interaction.user.id
 
-        connection = sqlite3.connect("./cogs/idol_gacha.db")
-        cursor = connection.cursor()
-        cursor.execute("""SELECT * FROM Idols
-                          WHERE idol_id = :roll_number""",
-                        {'roll_number': self.idol_id})
-        owner_id = cursor.fetchone()[3]
-
         ### RELEASE IDOL IF CORRECT USER, THEN DISABLE MENU ###
-        if (user_id == owner_id):
-            cursor.execute("""UPDATE Idols SET player_id = NULL
-                            WHERE idol_id == :idol_id""",
-                            {'idol_id': self.idol_id})
-            content=f"{self.idol_name} has been released from <@{owner_id}>'s party."
+        if (user_id == self.owner_id):
+            connection = sqlite3.connect("./cogs/idol_gacha.db")
+            cursor = connection.cursor()
 
-            ### DISABLE MENU ###
-            for button in self.children:
-                button.disabled = True
-                if button.label == "Release":
-                    button.label = f"{self.idol_name} was released"
-            await self.message.edit(view=self)
-        
-        ### FAIL IF IDOL HAS ALREADY BEEN RELEASED ###
-        elif (owner_id == 0):
-            content=f"ERROR: {self.idol_name} has already been released."
+            ### GET PARTY POSITION BEFORE RELEASING ###
+            cursor.execute("""SELECT party_position
+                            FROM PartyPositions
+                            WHERE idol_id = :idol_id""",
+                            {'idol_id': self.idol_id})
+            empty_position = cursor.fetchone()[0]
+            print(empty_position)
+
+            cursor.execute("""UPDATE PartyPositions
+                            SET idol_id = NULL
+                            WHERE idol_id = :idol_id""",
+                            {'idol_id': self.idol_id})
+            content=f"{self.idol_name} has been released from <@{self.owner_id}>'s party."
+
+            ### MOVE REMAINING IDOLS' PARTY POSITIONS UP BY 1 ###
+            cursor.execute("""SELECT party_position, idol_id FROM PartyPositions
+                            WHERE party_position > :empty_position""",
+                            {'empty_position': empty_position})
+            idols_to_move = cursor.fetchall()
+
+            for party_position, moving_idol_id in idols_to_move:
+                new_position = party_position - 1
+                cursor.execute("""UPDATE PartyPositions
+                                SET idol_id = :moving_idol_id
+                                WHERE party_position = :new_position""",
+                                {'moving_idol_id': moving_idol_id, 'new_position': new_position})
+            
+            ### FREE UP LAST PARTY POSITION ###
+            final_position = idols_to_move[-1][0]
+            cursor.execute("""UPDATE PartyPositions
+                            SET idol_id = NULL
+                            WHERE party_position = :final_position""",
+                            {'final_position': final_position})
 
             ### DISABLE MENU ###
             for button in self.children:
@@ -965,7 +1004,7 @@ class ReleaseButtonMenu(discord.ui.View):
 
         ### FAIL IF DIFFERENT PLAYER (IDOL NOT YET RELEASED) ###
         else:
-            content=f"ERROR: Only <@{self.caller_id}> has permission to use this menu!"
+            content=f"ERROR: Only <@{self.owner_id}> has permission to use this menu!"
 
         connection.commit()
         connection.close()
@@ -1104,6 +1143,7 @@ class ActiveTitleSelectMenu(discord.ui.View):
         await interaction.followup.send(content=content)
 
 
+### BUTTON MENU FOR !IDOLS ###
 class IdolsListPages(discord.ui.View, menus.MenuPages):
 
     ### MENU TIMES OUT AFTER 60 SECONDS ###
@@ -1169,6 +1209,7 @@ class IdolsListPages(discord.ui.View, menus.MenuPages):
         await interaction.response.defer()
 
 
+### FORMATS PAGES FOR !IDOLS ###
 class IdolsListPagesFormatter(menus.ListPageSource):
     async def format_page(self, menu, entries):
         embed = discord.Embed(
