@@ -165,7 +165,7 @@ class Gacha(commands.Cog):
         try:
             idol_id = int(arg)
         except (ValueError, TypeError):
-            await ctx.send("ERROR: Invalid ID. Please enter a number using the following syntax:\n`!release \"<Idol ID>\"`\nExample: `!release 14`")
+            await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!release \"<Idol ID>\"`\nExample: `!release 14`")
             return
 
         ### FETCH IDOL ###
@@ -413,6 +413,81 @@ class Gacha(commands.Cog):
 
         #connection.commit()
         #connection.close()
+    
+    ### !MOVE COMMAND: REORGANIZE PARTY ORDER ###
+    @commands.command(aliases=["m"])
+    async def move(self, ctx, *args):
+        print("!move called")
+
+        ### IF NO ARGS OR MORE THAN 3 ARGS, DISPLAY CORRECT SYNTAX ###
+        if len(args) < 2:
+            await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional)# up/down>`\nExample: `!move 0 down 3` or `!move 0 14`")
+            return
+        elif len(args) > 4:
+            await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional)# up/down>`\nExample: `!move 0 down 3` or `!move 0 14`")
+            return
+
+        ### FAIL IF ARG[0] IS NOT INT ###
+        try:
+            idol_id = int(args[0])
+        except (ValueError, TypeError):
+            await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional)# up/down>`\nExample: `!move 0 down 3` or `!move 0 14`")
+            return
+        
+        ### FETCH IDOL POSITION ###
+        connection = sqlite3.connect("./cogs/idol_gacha.db")
+        cursor = connection.cursor()
+        cursor.execute("""SELECT party_position
+                        FROM PartyPositions
+                        WHERE idol_id = :idol_id""",
+                        {'idol_id': idol_id})
+        idol_position = cursor.fetchone()
+        #print(idol)
+
+        ### ERROR MESSAGE IF IDOL DOES NOT EXIST ###
+        if idol_position is None:
+            await ctx.send(f"ERROR: The idol could not be found in your party. Use !profile to check the IDs of your idols.")
+            connection.close()
+            return
+
+        ### MOVE IDOL POSITION DOWN ###
+        if args[2] == "down" or args[2] == "d":
+            if len(args) == 4:
+                ### FAIL IF ARG[2] IS NOT INT ###
+                try:
+                    positions = int(args[3])
+                except (ValueError, TypeError):
+                    await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional)# up/down>`\nExample: `!move 0 down 3` or `!move 0 14`")
+                    return
+            else:
+                positions = 1
+            print("move " + idol_id + " down by " + positions)
+
+        ### MOVE IDOL POSITION UP ###
+        elif args[1] == "up" or args[1] == "u":
+            if len(args) == 3:
+                ### FAIL IF ARG[2] IS NOT INT ###
+                try:
+                    positions = int(args[2])
+                except (ValueError, TypeError):
+                    await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional)# up/down>`\nExample: `!move 0 down 3` or `!move 0 14`")
+                    return
+            else:
+                positions = 1
+            print("move " + idol_id + " up by " + positions)
+
+        ### SWAP IDOL POSITIONS ###
+        else:
+            ### FAIL IF ARG[1] IS NOT INT ###
+            try:
+                swap_id = int(args[1])
+            except (ValueError, TypeError):
+                await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional)# up/down>`\nExample: `!move 0 down 3` or `!move 0 14`")
+                return
+            print("swap " + idol_id + " and " + swap_id)
+
+        connection.commit()
+        connection.close()
 
     ### !RESETGACHA ADMIN COMMAND: RESET GACHA GAME ###
     @commands.command(aliases=["rg"])
@@ -454,8 +529,10 @@ class Gacha(commands.Cog):
             ### IF NO ARGS OR MORE THAN 2 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) == 0:
                 await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addtitle \"[Name of Title]\" [(optional)Title ID]`\nExample: `!addtitle \"Stay (Stray Kids Stan)\"`")
+                return
             elif len(args) > 2:
                 await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addtitle \"[Name of Title]\" [(optional)Title ID]`\nExample: `!addtitle \"Stay (Stray Kids Stan)\"`")
+                return
             
             ### IF AT LEAST 1 ARG, ADD TITLE TO DATABASE ###
             else:
@@ -501,9 +578,11 @@ class Gacha(commands.Cog):
             ### IF LESS THAN 2 ARGS OR MORE THAN 4 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) < 2:
                 await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Title ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
+                return
             elif len(args) > 4:
                 await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Title ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
-            
+                return
+
             ### IF AT LEAST 2 ARGS, ADD GROUP TO DATABASE ###
             else:
                 new_group_name = args[0]
@@ -587,9 +666,11 @@ class Gacha(commands.Cog):
             ### IF LESS THAN 2 ARGS OR MORE THAN 4 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) < 2:
                 await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID] [(optional)Idol ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
+                return
             elif len(args) > 4:
                 await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID] [(optional)Idol ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
-            
+                return
+
             ### IF AT LEAST 2 ARGS, ADD IDOL TO DATABASE ###
             else:
                 new_idol_name = args[0]

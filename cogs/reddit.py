@@ -12,7 +12,7 @@ class Reddit(commands.Cog):
     async def on_ready(self):
         print(f"{__name__} is ready!")
     
-    @commands.command(aliases=["memes", "m"])
+    @commands.command(aliases=["memes"])
     async def meme(self, ctx: commands.Context):
 
         subreddit = await self.reddit.subreddit("memes")
