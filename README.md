@@ -1,16 +1,19 @@
 ## Idol Gacha Commands
 - **!gacha | !g**: Rolls a random idol card that you can catch with a Pokeball
   - Idols can only be caught by the user who rolled them
-  - **!gacha [x] | !g**: Admin only. Rolls the idol whose Idol ID matches [x]
+  - **!gacha [x] | !g**: Admin only. Rolls the idol with Idol ID [x]
 - **!release [x] | !r**: Releases the idol with the ID of [x] from player's party
   - Sends the idol card and asks for confirmation
   - "Cancel" button cancels the command
-- **!profile | !p**: Displays player's profile with their earned titles and current party members
-  - Currently broken
+- **!profile | !p**: Displays player's profile with their earned titles and first 10 party members
 - **!idols | !party**: Displays a paginated list of all idols in the player's party
 - **!activetitle | !picktitle | !title**: Sends a dropdown menu which lets the player change their active title
+- **!moveidol [x] [up/down/id] (n) | !mi | !movei | !midol**: Reorganize player's idol list by moving Idol ID [x]
+  - "up" (or "u") moves idol up the list (n) times (default is 1)
+  - "down" (or "d") moves idol down the list (n) times (default is 1)
+  - giving another idol's [id] swaps the positions of the 2 idols
 - **!resetgacha | !rg**: Admin only. Releases all caught idols back into the wild
-- **!addtitle "[x]" | !newtitle "[x]"**: Admin only. Adds a new title named [x] to the database
+- **!addtitle "[x]" | !newtitle**: Admin only. Adds a new title named [x] to the database
   - Optional 2nd argument for the new title's ID
 - **!addgroup "[x]" "[x.jpg]" (a) (g) | !newgroup | !addg | !newg**: Admin only. Adds a new group named [x] to the database with the logo file [x.jpg]
   - Optional 3rd argument for the new group's associated title_id
@@ -18,12 +21,12 @@
 - **!addidol "[x]" "[x.jpg]" (g) (i) | !newidol | !addi | !newi**: Admin only. Adds a new idol named [x] to the database with the image file [x.jpg]
   - Optional 3rd argument for the new idol's group ID [g] (leave blank for Soloist)
   - Optional 4th argument for the new idol's ID [i]
-- **!resetrolls [x] | !rr [x]**: Admin only. Resets the user [x]'s rolls to max
+- **!resetrolls [x] | !rr**: Admin only. Resets the user [x]'s rolls to max
   - [x] can be an @ of the user or the user's ID
-- **!setrolls [x] [i] | !sr [x] [i]**: Admin only. Sets the user [x]'s rolls to [i]
+- **!setrolls [x] [i] | !sr**: Admin only. Sets the user [x]'s rolls to [i]
   - [x] can be an @ of the user or the user's ID
   - [i] must be at least 0
-- **!addroll [x] (i) | !ar [x] (i)**: Admin only. Increases the user [x]'s rolls by [i] (default is +1)
+- **!addroll [x] (i) | !ar**: Admin only. Increases the user [x]'s rolls by [i] (default is +1)
   - [x] can be an @ of the user or the user's ID
   - [i] must be greater than 0
 
