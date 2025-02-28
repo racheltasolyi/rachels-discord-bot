@@ -965,10 +965,39 @@ class ReleaseButtonMenu(discord.ui.View):
             connection = sqlite3.connect("./cogs/idol_gacha.db")
             cursor = connection.cursor()
 
-            cursor.execute("""UPDATE PartyPositions SET idol_id = NULL
+            ### GET PARTY POSITION BEFORE RELEASING ###
+            cursor.execute("""SELECT party_position
+                            FROM PartyPositions
+                            WHERE idol_id = :idol_id""",
+                            {'idol_id': self.idol_id})
+            empty_position = cursor.fetchone()[0]
+            print(empty_position)
+
+            cursor.execute("""UPDATE PartyPositions
+                            SET idol_id = NULL
                             WHERE idol_id = :idol_id""",
                             {'idol_id': self.idol_id})
             content=f"{self.idol_name} has been released from <@{self.owner_id}>'s party."
+
+            ### MOVE REMAINING IDOLS' PARTY POSITIONS UP BY 1 ###
+            cursor.execute("""SELECT party_position, idol_id FROM PartyPositions
+                            WHERE party_position > :empty_position""",
+                            {'empty_position': empty_position})
+            idols_to_move = cursor.fetchall()
+
+            for party_position, moving_idol_id in idols_to_move:
+                new_position = party_position - 1
+                cursor.execute("""UPDATE PartyPositions
+                                SET idol_id = :moving_idol_id
+                                WHERE party_position = :new_position""",
+                                {'moving_idol_id': moving_idol_id, 'new_position': new_position})
+            
+            ### FREE UP LAST PARTY POSITION ###
+            final_position = idols_to_move[-1][0]
+            cursor.execute("""UPDATE PartyPositions
+                            SET idol_id = NULL
+                            WHERE party_position = :final_position""",
+                            {'final_position': final_position})
 
             ### DISABLE MENU ###
             for button in self.children:
