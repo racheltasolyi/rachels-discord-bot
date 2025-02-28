@@ -244,35 +244,36 @@ class Gacha(commands.Cog):
                         {'player_id': player_id})
         player = cursor.fetchone()
         
-        ### IF PLAYER IS NEW, THROW ERROR (LATER: ADD NEW PLAYER TO DATABASE) ###
+        ### IF PLAYER IS NEW, ADD NEW PLAYER TO DATABASE ###
         if player is None:
-            # should create new helper function to create new player?
-            await ctx.send("ERROR: Player not found. Use `!gacha` to start the game and catch your first idol!")
-            connection.close()
-            return
+            self.createplayer(ctx, cursor)
+            cursor.execute("""SELECT * FROM Players
+                            WHERE player_id = :roller_id""",
+                            {'roller_id': player_id})
+            player = cursor.fetchone()
 
         ### FETCH ALL OF PLAYER'S IDOLS ###
-        cursor.execute("""SELECT * FROM Idols
-                          WHERE player_id = :player_id""",
+        cursor.execute("""SELECT PartyPositions.idol_id, Idols.idol_name, Idols.idol_image
+                        FROM PartyPositions
+                        INNER JOIN Idols ON PartyPositions.idol_id = Idols.idol_id
+                        WHERE player_id = :player_id""",
                         {'player_id': player_id})
         idol_list = cursor.fetchall()
         print(idol_list)
 
         ### FETCH PLAYER'S ACTIVE TITLE & LOGO ###
-        cursor.execute("""SELECT COALESCE(TitleList.title_name, 'Trainee') AS title_name, Groups.group_logo
+        cursor.execute("""SELECT TitleList.title_name, Groups.group_logo
                         FROM CompletedTitles
                         INNER JOIN TitleList ON CompletedTitles.title_id = TitleList.title_id
                         LEFT JOIN Groups ON CompletedTitles.title_id = Groups.title_id
-                        WHERE CompletedTitles.player_id = :player_id 
-                        AND CompletedTitles.active_title = 1""",
+                        WHERE (CompletedTitles.player_id = :player_id AND CompletedTitles.active_title = 1)""",
                         {'player_id': player_id})
-        active_title_query = cursor.fetchone()
-        if active_title_query is None:
+        active_title = cursor.fetchone()
+        if active_title is None:
             active_title_name = "Trainee"
             active_logo = None
         else:
-            active_title_name = active_title_query[0]
-            active_logo = active_title_query[1]
+            active_title_name, active_logo = active_title
         print(active_title_name)
         print(active_logo)
 
@@ -283,46 +284,42 @@ class Gacha(commands.Cog):
                         WHERE CompletedTitles.player_id = :player_id 
                         AND CompletedTitles.active_title = 0""",
                         {'player_id': player_id})
-        title_list_query = cursor.fetchall()
-        title_list = ""
-        for title in title_list_query:
-            title_list += f"* {title[0]}\n"
-
-        ### FETCH PLAYER'S CHOSEN IDOL IMAGE ###
-        if (len(idol_list) > 0):
-            active_idol = idol_list[0]
-            active_idol_image = active_idol[2]
-            #print(active_idol_image)
+        titles = cursor.fetchall()
+        formatted_titles = ""
+        for title in titles:
+            formatted_titles += f"* {title[0]}\n"
+        #print(titles)
 
         ### BUILD PLAYER PROFILE CARD ###
-        if (len(idol_list) > 0):
-            uploaded_active_idol_image = discord.File(f"./cogs/gacha_images/idols/{active_idol_image}", filename=active_idol_image)
+        card = discord.Embed(
+            title=f"{ctx.author.name}'s Idol Catcher Profile",
+            description=f"### {active_title_name}",
+            color=discord.Color.green())
+
         if active_logo is not None:
-            #debugging
-            try:
-                uploaded_active_logo = discord.File(f"./cogs/gacha_images/logos/{active_logo}", filename=active_logo)
-            except Exception as e:
-                print(f"Error loading logo file: {e}")
-                uploaded_active_logo = None
-            #uploaded_active_logo = discord.File(f"./cogs/gacha_images/logos/{active_logo}", filename=active_logo)
-        
-        card = discord.Embed(title=f"{ctx.author.name}'s Idol Catcher Profile", description=f"### {active_title_name}", color=discord.Color.green())
-        if active_logo is not None:
+            uploaded_active_logo = discord.File(f"./cogs/gacha_images/logos/{active_logo}", filename=active_logo)
             card.set_thumbnail(url=f"attachment://{active_logo}")
         else:
             card.set_thumbnail(url=ctx.author.avatar)
+        
+        ### FETCH & SET PLAYER'S ACTIVE IDOL IMAGE ###
         if (len(idol_list) > 0):
+            active_idol_image = idol_list[0][2]
+            uploaded_active_idol_image = discord.File(f"./cogs/gacha_images/idols/{active_idol_image}", filename=active_idol_image)
             card.set_image(url=f"attachment://{active_idol_image}")
 
-        if title_list_query:
+        ### ADD TITLES IF ANY ###
+        if len(titles) > 0:
             card.add_field(
-                name=f"\n{ctx.author.name}'s Titles:",
-                value=title_list,
-                inline=False
-            )
+                name=f"Titles:",
+                value=formatted_titles,
+                inline=False)
 
+        ### DISPLAY IDOLS IF ANY ###
         party_list = ""
         for i in range(10):
+            if i >= len(idol_list):
+                break
             if idol_list[i][0] < 10:
                 #spaces = " " #n-space
                 #spaces = "⠀" #braille blank
@@ -333,7 +330,7 @@ class Gacha(commands.Cog):
         if (len(idol_list) == 0):
             party_list = "Party is empty -- Use `!gacha` to catch an idol!"
         card.add_field(
-            name=f"\n{ctx.author.name}'s Top 10 Party Members:",
+            name=f"Top 10 Party Members:",
             value=party_list,
             inline=False
         )
@@ -341,15 +338,14 @@ class Gacha(commands.Cog):
         #print("Embed created!")
 
         ### DISPLAY PLAYER PROFILE CARD ###
-        if (len(idol_list) == 0) and active_logo is None:
+        if (len(idol_list) == 0) and active_logo is None: # no idols and no logo
             await ctx.send(embed=card)
-        elif active_logo is None:
+        elif (len(idol_list) == 0) and active_logo: # has logo but no idols
+            await ctx.send(files=[uploaded_active_logo], embed=card)
+        elif active_logo is None: # has idols but no logo
             await ctx.send(files=[uploaded_active_idol_image], embed=card)
-        else:
-            #debugging
-            files=[uploaded_active_idol_image, uploaded_active_logo]
-            print(f"Files to send: {[file.filename for file in files]}")
-            await ctx.send(files=files, embed=card)
+        else: # has both idols and logo
+            await ctx.send(files=[uploaded_active_idol_image, uploaded_active_logo], embed=card)
 
         connection.commit()
         connection.close()
