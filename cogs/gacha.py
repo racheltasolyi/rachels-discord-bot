@@ -253,9 +253,11 @@ class Gacha(commands.Cog):
             player = cursor.fetchone()
 
         ### FETCH ALL OF PLAYER'S IDOLS ###
-        cursor.execute("""SELECT PartyPositions.idol_id, Idols.idol_name, Idols.idol_image
+        cursor.execute("""SELECT PartyPositions.idol_id, Idols.idol_name, Idols.idol_image, Groups.group_name
                         FROM PartyPositions
                         INNER JOIN Idols ON PartyPositions.idol_id = Idols.idol_id
+                        INNER JOIN GroupMembers ON Idols.idol_id = GroupMembers.idol_id
+                        INNER JOIN Groups ON GroupMembers.group_id = Groups.group_id
                         WHERE player_id = :player_id""",
                         {'player_id': player_id})
         idol_list = cursor.fetchall()
@@ -326,7 +328,7 @@ class Gacha(commands.Cog):
                 spaces = " " #figure space (numerical digits) U+2007
             elif idol_list[i][0] >= 10 and idol_list[i][0] <100:
                 spaces = ""
-            party_list += "`" + spaces + f"{idol_list[i][0]}` {idol_list[i][1]}\n"
+            party_list += "`" + spaces + f"{idol_list[i][0]}` `{idol_list[i][3]}` {idol_list[i][1]}\n"
         if (len(idol_list) == 0):
             party_list = "Party is empty -- Use `!gacha` to catch an idol!"
         card.add_field(
