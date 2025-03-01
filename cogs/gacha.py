@@ -165,7 +165,7 @@ class Gacha(commands.Cog):
         try:
             idol_id = int(arg)
         except (ValueError, TypeError):
-            await ctx.send("ERROR: Invalid ID. Please enter a number using the following syntax:\n`!release \"<Idol ID>\"`\nExample: `!release 14`")
+            await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!release \"<Idol ID>\"`\nExample: `!release 14`")
             return
 
         ### FETCH IDOL ###
@@ -413,6 +413,187 @@ class Gacha(commands.Cog):
 
         #connection.commit()
         #connection.close()
+    
+    ### !MOVE COMMAND: REORGANIZE PARTY ORDER ###
+    @commands.command(aliases=["mi", "movei", "midol"])
+    async def moveidol(self, ctx, *args):
+
+        ### IF NO ARGS OR MORE THAN 3 ARGS, DISPLAY CORRECT SYNTAX ###
+        if len(args) < 2:
+            await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+            return
+        elif len(args) > 4:
+            await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+            return
+
+        ### FAIL IF ARG[0] IS NOT INT ###
+        try:
+            idol_id = int(args[0])
+        except (ValueError, TypeError):
+            await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+            return
+        
+        ### GET PLAYER ID ###
+        player_id = ctx.author.id
+        
+        ### FETCH IDOL POSITION ###
+        connection = sqlite3.connect("./cogs/idol_gacha.db")
+        cursor = connection.cursor()
+        cursor.execute("""SELECT PartyPositions.party_position, Idols.idol_name
+                        FROM PartyPositions
+                        INNER JOIN Idols ON PartyPositions.idol_id = Idols.idol_id
+                        WHERE (PartyPositions.idol_id = :idol_id AND PartyPositions.player_id = :player_id)""",
+                        {'idol_id': idol_id, 'player_id': player_id})
+        idol = cursor.fetchone()
+        print(idol)
+
+        ### ERROR MESSAGE IF IDOL NOT IN PLAYER'S PARTY ###
+        if idol is None:
+            await ctx.send(f"ERROR: The idol with ID {idol_id} could not be found in your party. Use !profile to check the IDs of your idols.")
+            connection.close()
+            return
+        
+        idol_position, idol_name = idol
+        print(idol_position)
+        #print(args[1])
+
+        ### MOVE IDOL POSITION DOWN ###
+        if args[1] == "down" or args[1] == "d":
+            if len(args) == 3:
+                #print(args[2])
+                ### FAIL IF ARG[2] IS NOT INT ###
+                try:
+                    positions = int(args[2])
+                except (ValueError, TypeError):
+                    await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+                    connection.close()
+                    return
+            else:
+                positions = 1
+            
+            ### MOVE IDOL THE CORRECT NUMBER OF POSITIONS DOWN ###
+            final_position = idol_position + positions # ID=21, idol_position=1, positions=10(8), final_position=11(9), max_positions=9
+            cursor.execute("""SELECT COUNT(*)
+                            FROM PartyPositions
+                            WHERE (player_id = :player_id AND idol_id IS NOT NULL)""",
+                            {'player_id': player_id})
+            max_positions = cursor.fetchone()[0]
+
+            if (final_position > max_positions):
+                positions = max_positions - idol_position
+                final_position = max_positions
+
+            ### SHIFT ALL IDOLS IN BETWEEN THE OLD AND NEW POSITIONS UP BY 1 ###
+            cursor.execute("""SELECT party_position, idol_id
+                            FROM PartyPositions
+                            WHERE (player_id = :player_id AND party_position > :idol_position AND party_position <= :final_position)""",
+                            {'player_id': player_id, 'idol_position': idol_position, 'final_position': final_position})
+            idols_to_move = cursor.fetchall()
+
+            for party_position, moving_idol_id in idols_to_move:
+                new_position = party_position - 1
+                cursor.execute("""UPDATE PartyPositions
+                                SET idol_id = :moving_idol_id
+                                WHERE (player_id = :player_id AND party_position = :new_position)""",
+                                {'player_id': player_id, 'moving_idol_id': moving_idol_id, 'new_position': new_position})
+            
+            ### PUT IDOL IN FINAL POSITION ###
+            cursor.execute("""UPDATE PartyPositions
+                            SET idol_id = :idol_id
+                            WHERE (player_id = :player_id AND party_position = :final_position)""",
+                            {'player_id': player_id, 'idol_id': idol_id, 'final_position': final_position})
+
+            ### CONFIRMATION MESSAGE ###
+            await ctx.send(f"{idol_name} has been moved down by {positions}.")
+
+        ### MOVE IDOL POSITION UP ###
+        elif args[1] == "up" or args[1] == "u":
+            if len(args) == 3:
+                #print(args[2])
+                ### FAIL IF ARG[2] IS NOT INT ###
+                try:
+                    positions = int(args[2])
+                except (ValueError, TypeError):
+                    await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+                    connection.close()
+                    return
+            else:
+                positions = 1
+
+            ### MOVE IDOL THE CORRECT NUMBER OF POSITIONS UP ###
+            final_position = idol_position - positions # ID=40, idol_position=5, positions=10, final_position=-5
+            if (final_position < 1):
+                positions = idol_position - 1
+                final_position = 1
+
+            ### SHIFT ALL IDOLS IN BETWEEN THE OLD AND NEW POSITIONS DOWN BY 1 ###
+            cursor.execute("""SELECT party_position, idol_id
+                            FROM PartyPositions
+                            WHERE (player_id = :player_id AND party_position < :idol_position AND party_position >= :final_position)
+                            ORDER BY party_position DESC""",
+                            {'player_id': player_id, 'idol_position': idol_position, 'final_position': final_position})
+            idols_to_move = cursor.fetchall()
+            print(idols_to_move)
+
+            for party_position, moving_idol_id in idols_to_move:
+                new_position = party_position + 1
+                cursor.execute("""UPDATE PartyPositions
+                                SET idol_id = :moving_idol_id
+                                WHERE (player_id = :player_id AND party_position = :new_position)""",
+                                {'player_id': player_id, 'moving_idol_id': moving_idol_id, 'new_position': new_position})
+            
+            ### PUT IDOL IN FINAL POSITION ###
+            cursor.execute("""UPDATE PartyPositions
+                            SET idol_id = :idol_id
+                            WHERE (player_id = :player_id AND party_position = :final_position)""",
+                            {'player_id': player_id, 'idol_id': idol_id, 'final_position': final_position})
+            
+            ### CONFIRMATION MESSAGE ###
+            await ctx.send(f"{idol_name} has been moved up by {positions}.")
+
+        ### SWAP IDOL POSITIONS ###
+        else:
+            ### FAIL IF ARG[1] IS NOT INT ###
+            try:
+                swap_id = int(args[1])
+            except (ValueError, TypeError):
+                await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+                connection.close()
+                return
+            
+            print("swap " + str(idol_id) + " and " + str(swap_id))
+            ### CHECK IF 2ND IDOL IS IN PLAYER'S PARTY AND FETCH POSITION ###
+            cursor.execute("""SELECT PartyPositions.party_position, Idols.idol_name
+                            FROM PartyPositions
+                            INNER JOIN Idols ON PartyPositions.idol_id = Idols.idol_id
+                            WHERE (PartyPositions.player_id = :player_id AND PartyPositions.idol_id = :swap_id)""",
+                            {'player_id': player_id, 'swap_id': swap_id})
+            swap_idol = cursor.fetchone()
+            print(swap_idol)
+
+            ### ERROR MESSAGE IF IDOL NOT IN PLAYER'S PARTY ###
+            if swap_idol is None:
+                await ctx.send(f"ERROR: The idol with ID {swap_id} could not be found in your party. Use !profile to check the IDs of your idols.")
+                connection.close()
+                return
+            
+            swap_position, swap_name = swap_idol
+            
+            ### SWAP POSITIONS ###
+            cursor.execute("""UPDATE PartyPositions
+                            SET idol_id = :swap_id
+                            WHERE (player_id = :player_id AND party_position = :idol_position)""",
+                            {'player_id': player_id, 'swap_id': swap_id, 'idol_position': idol_position})
+            cursor.execute("""UPDATE PartyPositions
+                            SET idol_id = :idol_id
+                            WHERE (player_id = :player_id AND party_position = :swap_position)""",
+                            {'player_id': player_id, 'idol_id': idol_id, 'swap_position': swap_position})
+            
+            ### CONFIRMATION MESSAGE ###
+            await ctx.send(f"{idol_name} and {swap_name} have been swapped.")
+
+        connection.commit()
+        connection.close()
 
     ### !RESETGACHA ADMIN COMMAND: RESET GACHA GAME ###
     @commands.command(aliases=["rg"])
@@ -454,8 +635,10 @@ class Gacha(commands.Cog):
             ### IF NO ARGS OR MORE THAN 2 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) == 0:
                 await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addtitle \"[Name of Title]\" [(optional)Title ID]`\nExample: `!addtitle \"Stay (Stray Kids Stan)\"`")
+                return
             elif len(args) > 2:
                 await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addtitle \"[Name of Title]\" [(optional)Title ID]`\nExample: `!addtitle \"Stay (Stray Kids Stan)\"`")
+                return
             
             ### IF AT LEAST 1 ARG, ADD TITLE TO DATABASE ###
             else:
@@ -501,9 +684,11 @@ class Gacha(commands.Cog):
             ### IF LESS THAN 2 ARGS OR MORE THAN 4 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) < 2:
                 await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Title ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
+                return
             elif len(args) > 4:
                 await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Title ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
-            
+                return
+
             ### IF AT LEAST 2 ARGS, ADD GROUP TO DATABASE ###
             else:
                 new_group_name = args[0]
@@ -587,9 +772,11 @@ class Gacha(commands.Cog):
             ### IF LESS THAN 2 ARGS OR MORE THAN 4 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) < 2:
                 await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID] [(optional)Idol ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
+                return
             elif len(args) > 4:
                 await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID] [(optional)Idol ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
-            
+                return
+
             ### IF AT LEAST 2 ARGS, ADD IDOL TO DATABASE ###
             else:
                 new_idol_name = args[0]
