@@ -11,7 +11,7 @@ class Inspire(commands.Cog):
     async def on_ready(self):
         print(f"{__name__} is online!")
 
-    @commands.command(aliases=["quote", "inspiration", "i"])
+    @commands.command(aliases=["quote", "inspiration"])
     async def inspire(self, ctx):
         response = requests.get("https://zenquotes.io/api/random/")
         json_data = json.loads(response.text)

@@ -417,7 +417,6 @@ class Gacha(commands.Cog):
     ### !MOVE COMMAND: REORGANIZE PARTY ORDER ###
     @commands.command(aliases=["mi", "movei", "midol"])
     async def moveidol(self, ctx, *args):
-        print("!moveidol called")
 
         ### IF NO ARGS OR MORE THAN 3 ARGS, DISPLAY CORRECT SYNTAX ###
         if len(args) < 2:
@@ -434,18 +433,21 @@ class Gacha(commands.Cog):
             await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
             return
         
+        ### GET PLAYER ID ###
+        player_id = ctx.author.id
+        
         ### FETCH IDOL POSITION ###
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
         cursor.execute("""SELECT PartyPositions.party_position, Idols.idol_name
                         FROM PartyPositions
                         INNER JOIN Idols ON PartyPositions.idol_id = Idols.idol_id
-                        WHERE PartyPositions.idol_id = :idol_id""",
-                        {'idol_id': idol_id})
+                        WHERE (PartyPositions.idol_id = :idol_id AND PartyPositions.player_id = :player_id)""",
+                        {'idol_id': idol_id, 'player_id': player_id})
         idol = cursor.fetchone()
         print(idol)
 
-        ### ERROR MESSAGE IF IDOL DOES NOT EXIST ###
+        ### ERROR MESSAGE IF IDOL NOT IN PLAYER'S PARTY ###
         if idol is None:
             await ctx.send(f"ERROR: The idol with ID {idol_id} could not be found in your party. Use !profile to check the IDs of your idols.")
             connection.close()
@@ -464,32 +466,42 @@ class Gacha(commands.Cog):
                     positions = int(args[2])
                 except (ValueError, TypeError):
                     await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+                    connection.close()
                     return
             else:
                 positions = 1
             
-            print("move " + str(idol_id) + " down by " + str(positions))
             ### MOVE IDOL THE CORRECT NUMBER OF POSITIONS DOWN ###
-            final_position = idol_position + positions
+            final_position = idol_position + positions # ID=21, idol_position=1, positions=10(8), final_position=11(9), max_positions=9
+            cursor.execute("""SELECT COUNT(*)
+                            FROM PartyPositions
+                            WHERE (player_id = :player_id AND idol_id IS NOT NULL)""",
+                            {'player_id': player_id})
+            max_positions = cursor.fetchone()[0]
+
+            if (final_position > max_positions):
+                positions = max_positions - idol_position
+                final_position = max_positions
 
             ### SHIFT ALL IDOLS IN BETWEEN THE OLD AND NEW POSITIONS UP BY 1 ###
-            cursor.execute("""SELECT party_position, idol_id FROM PartyPositions
-                            WHERE (party_position > :idol_position AND party_position <= :final_position)""",
-                            {'idol_position': idol_position, 'final_position': final_position})
+            cursor.execute("""SELECT party_position, idol_id
+                            FROM PartyPositions
+                            WHERE (player_id = :player_id AND party_position > :idol_position AND party_position <= :final_position)""",
+                            {'player_id': player_id, 'idol_position': idol_position, 'final_position': final_position})
             idols_to_move = cursor.fetchall()
 
             for party_position, moving_idol_id in idols_to_move:
                 new_position = party_position - 1
                 cursor.execute("""UPDATE PartyPositions
                                 SET idol_id = :moving_idol_id
-                                WHERE party_position = :new_position""",
-                                {'moving_idol_id': moving_idol_id, 'new_position': new_position})
+                                WHERE (player_id = :player_id AND party_position = :new_position)""",
+                                {'player_id': player_id, 'moving_idol_id': moving_idol_id, 'new_position': new_position})
             
             ### PUT IDOL IN FINAL POSITION ###
             cursor.execute("""UPDATE PartyPositions
                             SET idol_id = :idol_id
-                            WHERE party_position = :final_position""",
-                            {'idol_id': idol_id, 'final_position': final_position})
+                            WHERE (player_id = :player_id AND party_position = :final_position)""",
+                            {'player_id': player_id, 'idol_id': idol_id, 'final_position': final_position})
 
             ### CONFIRMATION MESSAGE ###
             await ctx.send(f"{idol_name} has been moved down by {positions}.")
@@ -503,33 +515,38 @@ class Gacha(commands.Cog):
                     positions = int(args[2])
                 except (ValueError, TypeError):
                     await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+                    connection.close()
                     return
             else:
                 positions = 1
 
-            print("move " + str(idol_id) + " up by " + str(positions))
             ### MOVE IDOL THE CORRECT NUMBER OF POSITIONS UP ###
-            final_position = idol_position - positions
+            final_position = idol_position - positions # ID=40, idol_position=5, positions=10, final_position=-5
+            if (final_position < 1):
+                positions = idol_position - 1
+                final_position = 1
 
             ### SHIFT ALL IDOLS IN BETWEEN THE OLD AND NEW POSITIONS DOWN BY 1 ###
-            cursor.execute("""SELECT party_position, idol_id FROM PartyPositions
-                            WHERE (party_position > :idol_position AND party_position <= :final_position)
+            cursor.execute("""SELECT party_position, idol_id
+                            FROM PartyPositions
+                            WHERE (player_id = :player_id AND party_position < :idol_position AND party_position >= :final_position)
                             ORDER BY party_position DESC""",
-                            {'idol_position': idol_position, 'final_position': final_position})
+                            {'player_id': player_id, 'idol_position': idol_position, 'final_position': final_position})
             idols_to_move = cursor.fetchall()
+            print(idols_to_move)
 
             for party_position, moving_idol_id in idols_to_move:
                 new_position = party_position + 1
                 cursor.execute("""UPDATE PartyPositions
                                 SET idol_id = :moving_idol_id
-                                WHERE party_position = :new_position""",
-                                {'moving_idol_id': moving_idol_id, 'new_position': new_position})
+                                WHERE (player_id = :player_id AND party_position = :new_position)""",
+                                {'player_id': player_id, 'moving_idol_id': moving_idol_id, 'new_position': new_position})
             
             ### PUT IDOL IN FINAL POSITION ###
             cursor.execute("""UPDATE PartyPositions
                             SET idol_id = :idol_id
-                            WHERE party_position = :final_position""",
-                            {'idol_id': idol_id, 'final_position': final_position})
+                            WHERE (player_id = :player_id AND party_position = :final_position)""",
+                            {'player_id': player_id, 'idol_id': idol_id, 'final_position': final_position})
             
             ### CONFIRMATION MESSAGE ###
             await ctx.send(f"{idol_name} has been moved up by {positions}.")
@@ -541,6 +558,7 @@ class Gacha(commands.Cog):
                 swap_id = int(args[1])
             except (ValueError, TypeError):
                 await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+                connection.close()
                 return
             
             print("swap " + str(idol_id) + " and " + str(swap_id))
@@ -548,12 +566,12 @@ class Gacha(commands.Cog):
             cursor.execute("""SELECT PartyPositions.party_position, Idols.idol_name
                             FROM PartyPositions
                             INNER JOIN Idols ON PartyPositions.idol_id = Idols.idol_id
-                            WHERE PartyPositions.idol_id = :swap_id""",
-                            {'swap_id': swap_id})
+                            WHERE (PartyPositions.player_id = :player_id AND PartyPositions.idol_id = :swap_id)""",
+                            {'player_id': player_id, 'swap_id': swap_id})
             swap_idol = cursor.fetchone()
             print(swap_idol)
 
-            ### ERROR MESSAGE IF IDOL DOES NOT EXIST ###
+            ### ERROR MESSAGE IF IDOL NOT IN PLAYER'S PARTY ###
             if swap_idol is None:
                 await ctx.send(f"ERROR: The idol with ID {swap_id} could not be found in your party. Use !profile to check the IDs of your idols.")
                 connection.close()
@@ -564,12 +582,12 @@ class Gacha(commands.Cog):
             ### SWAP POSITIONS ###
             cursor.execute("""UPDATE PartyPositions
                             SET idol_id = :swap_id
-                            WHERE party_position = :idol_position""",
-                            {'swap_id': swap_id, 'idol_position': idol_position})
+                            WHERE (player_id = :player_id AND party_position = :idol_position)""",
+                            {'player_id': player_id, 'swap_id': swap_id, 'idol_position': idol_position})
             cursor.execute("""UPDATE PartyPositions
                             SET idol_id = :idol_id
-                            WHERE party_position = :swap_position""",
-                            {'idol_id': idol_id, 'swap_position': swap_position})
+                            WHERE (player_id = :player_id AND party_position = :swap_position)""",
+                            {'player_id': player_id, 'idol_id': idol_id, 'swap_position': swap_position})
             
             ### CONFIRMATION MESSAGE ###
             await ctx.send(f"{idol_name} and {swap_name} have been swapped.")

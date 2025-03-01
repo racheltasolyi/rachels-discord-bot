@@ -8,7 +8,7 @@
 - **!profile | !p**: Displays player's profile with their earned titles and first 10 party members
 - **!idols | !party**: Displays a paginated list of all idols in the player's party
 - **!activetitle | !picktitle | !title**: Sends a dropdown menu which lets the player change their active title
-- **!moveidol [x] [up/down/id] (n) | !mi | !movei | !midol**: Reorganize player's idol list by moving Idol ID [x]
+- **!moveidol [x] [up/down/id] (n) | !mi | !movei | !midol**: Reorganize player's idol list by moving the idol with Idol ID [x]
   - "up" (or "u") moves idol up the list (n) times (default is 1)
   - "down" (or "d") moves idol down the list (n) times (default is 1)
   - giving another idol's [id] swaps the positions of the 2 idols
@@ -38,14 +38,14 @@
 - **!sendembed**: Displays an embed
   - Currently just a formatting template
 - **!ping | !p**: Displays user's current ping
-- **!meme | !memes | !m**: Displays a random trending meme from Reddit
+- **!meme | !memes**: Displays a random trending meme from Reddit
 - **!cat | !cats | !catpic | !catt | !c**: Displays a random trending cat pic from Reddit
 - On member join: Welcomes new member with a random idol's picture and member count
 - **!level | !l | /level** : Displays user's level statistics (current level, current XP, and total XP required to reach next level)
   - Every message sent in the discord gives a random amount of XP ranging from 1-25, including this command
   - The level statistics displayed do not include the XP gained from sending this command
   - The amount of XP required to level up increases exponentially with each level
-- **!inspire | !inspiration | !i | !quote**: Sends a random inspirational quote
+- **!inspire | !inspiration | !quote**: Sends a random inspirational quote
 - **!balance | !b**: Displays user's Wallet Balance and Bank Balance (creates new bank account if the user does not have one)
 - **!beg**: A random amount of coins ranging from 1-100 is added to user's Wallet
 - **/uselessbuttonmenu**: Displays a button menu that sends a message whenever a button is pressed
