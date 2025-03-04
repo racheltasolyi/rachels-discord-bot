@@ -5,13 +5,15 @@
 - **!release [x] | !r**: Releases the idol with the ID of [x] from player's party
   - Sends the idol card and asks for confirmation
   - "Cancel" button cancels the command
-- **!profile | !p**: Displays player's profile with their earned titles and first 10 party members
+- **!profile | !p**: Displays player's profile with their earned titles and top 10 party members
 - **!idols | !party**: Displays a paginated list of all idols in the player's party
 - **!activetitle | !picktitle | !title**: Sends a dropdown menu which lets the player change their active title
 - **!moveidol [x] [up/down/id] (n) | !mi | !movei | !midol**: Reorganize player's idol list by moving the idol with Idol ID [x]
   - "up" (or "u") moves idol up the list (n) times (default is 1)
   - "down" (or "d") moves idol down the list (n) times (default is 1)
   - giving another idol's [id] swaps the positions of the 2 idols
+- **!movetitle [x] [up/down/id] (n) | !mt | !movet | !mtitle**: Reorganize player's title list by moving the title with Title ID [x]
+  - parameters work the same way as `!moveidol`
 - **!resetgacha | !rg**: Admin only. Releases all caught idols back into the wild
 - **!addtitle "[x]" | !newtitle**: Admin only. Adds a new title named [x] to the database
   - Optional 2nd argument for the new title's ID

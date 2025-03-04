@@ -268,7 +268,7 @@ class Gacha(commands.Cog):
                         FROM CompletedTitles
                         INNER JOIN TitleList ON CompletedTitles.title_id = TitleList.title_id
                         LEFT JOIN Groups ON CompletedTitles.title_id = Groups.title_id
-                        WHERE (CompletedTitles.player_id = :player_id AND CompletedTitles.active_title = 1)""",
+                        WHERE (CompletedTitles.player_id = :player_id AND CompletedTitles.position = 1)""",
                         {'player_id': player_id})
         active_title = cursor.fetchone()
         if active_title is None:
@@ -276,21 +276,14 @@ class Gacha(commands.Cog):
             active_logo = None
         else:
             active_title_name, active_logo = active_title
-        print(active_title_name)
-        print(active_logo)
 
-        ### FETCH ALL OF PLAYER'S TITLES ###
-        cursor.execute("""SELECT TitleList.title_name
+        ### FETCH ALL OF PLAYER'S TITLES WITH IDS ###
+        cursor.execute("""SELECT TitleList.title_name, CompletedTitles.title_id
                         FROM CompletedTitles
                         INNER JOIN TitleList ON CompletedTitles.title_id = TitleList.title_id
-                        WHERE CompletedTitles.player_id = :player_id 
-                        AND CompletedTitles.active_title = 0""",
+                        WHERE (CompletedTitles.player_id = :player_id AND CompletedTitles.position > 1)""",
                         {'player_id': player_id})
         titles = cursor.fetchall()
-        formatted_titles = ""
-        for title in titles:
-            formatted_titles += f"* {title[0]}\n"
-        #print(titles)
 
         ### BUILD PLAYER PROFILE CARD ###
         card = discord.Embed(
@@ -310,14 +303,21 @@ class Gacha(commands.Cog):
             uploaded_active_idol_image = discord.File(f"./cogs/gacha_images/idols/{active_idol_image}", filename=active_idol_image)
             card.set_image(url=f"attachment://{active_idol_image}")
 
-        ### ADD TITLES IF ANY ###
+        ### FORMAT AND DISPLAY TITLES IF ANY ###
+        formatted_titles = ""
+        for title in titles:
+            if title[1] < 10:
+                spaces = " " #figure space (numerical digits) U+2007
+            else: # title[1] >= 10 and title[1] <100:
+                spaces = ""
+            formatted_titles += "`" + spaces + f"{title[1]}` {title[0]}\n"
         if len(titles) > 0:
             card.add_field(
                 name=f"Titles:",
                 value=formatted_titles,
                 inline=False)
 
-        ### DISPLAY IDOLS IF ANY ###
+        ### FORMAT AND DISPLAY IDOLS IF ANY ###
         party_list = ""
         for i in range(10):
             if i >= len(idol_list):
@@ -353,17 +353,18 @@ class Gacha(commands.Cog):
         connection.close()
     
     ### !RELEASE COMMAND: RELEASE SPECIFIED IDOL ###
-    @commands.command(aliases=["picktitle", "title"])
+    @commands.command(aliases=["picktitle", "title", "at"])
     async def activetitle(self, ctx):
         
         ### FETCH PLAYER'S TITLES ###
         player_id = ctx.author.id
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
-        cursor.execute("""SELECT CompletedTitles.title_id, TitleList.title_name, CompletedTitles.active_title
+        cursor.execute("""SELECT CompletedTitles.title_id, TitleList.title_name, CompletedTitles.position
                         FROM CompletedTitles
                         INNER JOIN TitleList ON CompletedTitles.title_id = TitleList.title_id
-                        WHERE player_id = :player_id""",
+                        WHERE player_id = :player_id
+                        ORDER BY CompletedTitles.position""",
                         {'player_id': player_id})
         titles = cursor.fetchall()
         #print(titles)
@@ -416,23 +417,23 @@ class Gacha(commands.Cog):
         #connection.commit()
         #connection.close()
     
-    ### !MOVE COMMAND: REORGANIZE PARTY ORDER ###
+    ### !MOVEIDOL COMMAND: REORGANIZE PARTY ORDER ###
     @commands.command(aliases=["mi", "movei", "midol"])
     async def moveidol(self, ctx, *args):
 
         ### IF NO ARGS OR MORE THAN 3 ARGS, DISPLAY CORRECT SYNTAX ###
         if len(args) < 2:
-            await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+            await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!moveidol <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!moveidol 0 down 3` or `!moveidol 0 14`")
             return
         elif len(args) > 4:
-            await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+            await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!moveidol <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!moveidol 0 down 3` or `!moveidol 0 14`")
             return
 
         ### FAIL IF ARG[0] IS NOT INT ###
         try:
             idol_id = int(args[0])
         except (ValueError, TypeError):
-            await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+            await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!moveidol <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!moveidol 0 down 3` or `!moveidol 0 14`")
             return
         
         ### GET PLAYER ID ###
@@ -451,7 +452,7 @@ class Gacha(commands.Cog):
 
         ### ERROR MESSAGE IF IDOL NOT IN PLAYER'S PARTY ###
         if idol is None:
-            await ctx.send(f"ERROR: The idol with ID {idol_id} could not be found in your party. Use !profile to check the IDs of your idols.")
+            await ctx.send(f"ERROR: The idol with ID {idol_id} could not be found in your party. Use `!profile` or `!idols` to check the IDs of your idols.")
             connection.close()
             return
         
@@ -467,7 +468,7 @@ class Gacha(commands.Cog):
                 try:
                     positions = int(args[2])
                 except (ValueError, TypeError):
-                    await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+                    await ctx.send("ERROR: Invalid number of positions. Please enter a number using the following syntax:\n`!moveidol <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!moveidol 0 down 3` or `!moveidol 0 14`")
                     connection.close()
                     return
             else:
@@ -516,7 +517,7 @@ class Gacha(commands.Cog):
                 try:
                     positions = int(args[2])
                 except (ValueError, TypeError):
-                    await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+                    await ctx.send("ERROR: Invalid number of positions. Please enter a number using the following syntax:\n`!moveidol <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!moveidol 0 down 3` or `!moveidol 0 14`")
                     connection.close()
                     return
             else:
@@ -559,11 +560,10 @@ class Gacha(commands.Cog):
             try:
                 swap_id = int(args[1])
             except (ValueError, TypeError):
-                await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!move <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!move 0 down 3` or `!move 0 14`")
+                await ctx.send("ERROR: Invalid Idol ID. Please enter a number using the following syntax:\n`!moveidol <Idol ID> <up/down/ID of Idol to swap with> <(optional) #>`\nExample: `!moveidol 0 down 3` or `!moveidol 0 14`")
                 connection.close()
                 return
             
-            print("swap " + str(idol_id) + " and " + str(swap_id))
             ### CHECK IF 2ND IDOL IS IN PLAYER'S PARTY AND FETCH POSITION ###
             cursor.execute("""SELECT PartyPositions.party_position, Idols.idol_name
                             FROM PartyPositions
@@ -575,7 +575,7 @@ class Gacha(commands.Cog):
 
             ### ERROR MESSAGE IF IDOL NOT IN PLAYER'S PARTY ###
             if swap_idol is None:
-                await ctx.send(f"ERROR: The idol with ID {swap_id} could not be found in your party. Use !profile to check the IDs of your idols.")
+                await ctx.send(f"ERROR: The idol with ID {swap_id} could not be found in your party. Use `!profile` or `!idols` to check the IDs of your idols.")
                 connection.close()
                 return
             
@@ -593,6 +593,195 @@ class Gacha(commands.Cog):
             
             ### CONFIRMATION MESSAGE ###
             await ctx.send(f"{idol_name} and {swap_name} have been swapped.")
+
+        connection.commit()
+        connection.close()
+    
+    ### !MOVETITLE COMMAND: REORGANIZE TITLE LIST ORDER ###
+    @commands.command(aliases=["mt", "movet", "mtitle"])
+    async def movetitle(self, ctx, *args):
+
+        ### IF NO ARGS OR MORE THAN 3 ARGS, DISPLAY CORRECT SYNTAX ###
+        if len(args) < 2:
+            await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!movetitle <Title ID> <up/down/ID of Title to swap with> <(optional) #>`\nExample: `!movetitle 0 down 2` or `!movetitle 0 1`")
+            return
+        elif len(args) > 4:
+            await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!movetitle <Title ID> <up/down/ID of Title to swap with> <(optional) #>`\nExample: `!movetitle 0 down 2` or `!movetitle 0 1`")
+            return
+
+        ### FAIL IF ARG[0] IS NOT INT ###
+        try:
+            title_id = int(args[0])
+        except (ValueError, TypeError):
+            await ctx.send("ERROR: Invalid Title ID. Please enter a number using the following syntax:\n`!movetitle <Title ID> <up/down/ID of Title to swap with> <(optional) #>`\nExample: `!movetitle 0 down 2` or `!movetitle 0 1`")
+            return
+        
+        ### GET PLAYER ID ###
+        player_id = ctx.author.id
+        
+        ### FETCH TITLE POSITION ###
+        connection = sqlite3.connect("./cogs/idol_gacha.db")
+        cursor = connection.cursor()
+        cursor.execute("""SELECT CompletedTitles.position, TitleList.title_name
+                        FROM CompletedTitles
+                        INNER JOIN TitleList ON CompletedTitles.title_id = TitleList.title_id
+                        WHERE (CompletedTitles.title_id = :title_id AND CompletedTitles.player_id = :player_id)""",
+                        {'title_id': title_id, 'player_id': player_id})
+        title = cursor.fetchone()
+        print(title)
+
+        ### ERROR MESSAGE IF PLAYER DOES NOT HAVE TITLE ###
+        if title is None:
+            await ctx.send(f"ERROR: You have not completed the title with ID {title_id}. Use `!profile` to check the IDs of your titles.")
+            connection.close()
+            return
+        
+        title_position, title_name = title
+        #print(title_position)
+        #print(args[1])
+
+        ### ERROR IF ACTIVE TITLE ###
+        if title_position == 1:
+            await ctx.send(f"ERROR: You cannot move your active title. Use `!activetitle` to change it to a different title first.")
+            connection.close()
+            return
+
+        ### MOVE TITLE POSITION DOWN ###
+        if args[1] == "down" or args[1] == "d":
+            if len(args) == 3:
+                #print(args[2])
+                ### FAIL IF ARG[2] IS NOT INT ###
+                try:
+                    positions = int(args[2])
+                except (ValueError, TypeError):
+                    await ctx.send("ERROR: Invalid number of positions. Please enter a number using the following syntax:\n`!movetitle <Title ID> <up/down/ID of Title to swap with> <(optional) #>`\nExample: `!movetitle 0 down 2` or `!movetitle 0 1`")
+                    connection.close()
+                    return
+            else:
+                positions = 1
+            
+            ### MOVE TITLE THE CORRECT NUMBER OF POSITIONS DOWN ###
+            final_position = title_position + positions # ID=21, idol_position=1, positions=10(8), final_position=11(9), max_positions=9
+            cursor.execute("""SELECT position
+                            FROM CompletedTitles
+                            WHERE player_id = :player_id
+                            ORDER BY position DESC
+                            LIMIT 1""",
+                            {'player_id': player_id})
+            max_positions = cursor.fetchone()[0]
+
+            if (final_position > max_positions):
+                positions = max_positions - title_position
+                final_position = max_positions
+
+            ### SHIFT ALL TITLES IN BETWEEN THE OLD AND NEW POSITIONS UP BY 1 ###
+            cursor.execute("""SELECT position, title_id
+                            FROM CompletedTitles
+                            WHERE (player_id = :player_id AND position > :title_position AND position <= :final_position)""",
+                            {'player_id': player_id, 'title_position': title_position, 'final_position': final_position})
+            titles_to_move = cursor.fetchall()
+
+            for position, moving_title_id in titles_to_move:
+                new_position = position - 1
+                cursor.execute("""UPDATE CompletedTitles
+                                SET title_id = :moving_title_id
+                                WHERE (player_id = :player_id AND position = :new_position)""",
+                                {'player_id': player_id, 'moving_title_id': moving_title_id, 'new_position': new_position})
+            
+            ### PUT TITLE IN FINAL POSITION ###
+            cursor.execute("""UPDATE CompletedTitles
+                            SET title_id = :title_id
+                            WHERE (player_id = :player_id AND position = :final_position)""",
+                            {'player_id': player_id, 'title_id': title_id, 'final_position': final_position})
+
+            ### CONFIRMATION MESSAGE ###
+            await ctx.send(f"{title_name} has been moved down by {positions}.")
+
+        ### MOVE TITLE POSITION UP ###
+        elif args[1] == "up" or args[1] == "u":
+            if len(args) == 3:
+                #print(args[2])
+                ### FAIL IF ARG[2] IS NOT INT ###
+                try:
+                    positions = int(args[2])
+                except (ValueError, TypeError):
+                    await ctx.send("ERROR: Invalid number of positions. Please enter a number using the following syntax:\n`!movetitle <Title ID> <up/down/ID of Title to swap with> <(optional) #>`\nExample: `!movetitle 0 down 2` or `!movetitle 0 1`")
+                    connection.close()
+                    return
+            else:
+                positions = 1
+
+            ### MOVE TITLE THE CORRECT NUMBER OF POSITIONS UP (MIN POSITION IS 2) ###
+            final_position = title_position - positions # ID=0, title_position=2, positions=10, final_position=-8
+            if (final_position < 2):
+                positions = title_position - 2
+                final_position = 2
+
+            ### SHIFT ALL TITLES IN BETWEEN THE OLD AND NEW POSITIONS DOWN BY 1 ###
+            cursor.execute("""SELECT position, title_id
+                            FROM CompletedTitles
+                            WHERE (player_id = :player_id AND position < :title_position AND position >= :final_position)
+                            ORDER BY position DESC""",
+                            {'player_id': player_id, 'title_position': title_position, 'final_position': final_position})
+            titles_to_move = cursor.fetchall()
+            #print(titles_to_move)
+
+            for position, moving_title_id in titles_to_move:
+                new_position = position + 1
+                cursor.execute("""UPDATE CompletedTitles
+                                SET title_id = :moving_title_id
+                                WHERE (player_id = :player_id AND position = :new_position)""",
+                                {'player_id': player_id, 'moving_title_id': moving_title_id, 'new_position': new_position})
+            
+            ### PUT TITLE IN FINAL POSITION ###
+            cursor.execute("""UPDATE CompletedTitles
+                            SET title_id = :title_id
+                            WHERE (player_id = :player_id AND position = :final_position)""",
+                            {'player_id': player_id, 'title_id': title_id, 'final_position': final_position})
+            
+            ### CONFIRMATION MESSAGE ###
+            await ctx.send(f"{title_name} has been moved up by {positions}.")
+
+        ### SWAP TITLE POSITIONS ###
+        else:
+            ### FAIL IF ARG[1] IS NOT INT ###
+            try:
+                swap_id = int(args[1])
+            except (ValueError, TypeError):
+                await ctx.send("ERROR: Invalid Title ID. Please enter a number using the following syntax:\n`!movetitle <Title ID> <up/down/ID of Title to swap with> <(optional) #>`\nExample: `!movetitle 0 down 2` or `!movetitle 0 1`")
+                connection.close()
+                return
+            
+            #print("swap " + str(title_id) + " and " + str(swap_id))
+            ### CHECK IF PLAYER HAS 2ND TITLE AND FETCH POSITION ###
+            cursor.execute("""SELECT CompletedTitles.position, TitleList.title_name
+                            FROM CompletedTitles
+                            INNER JOIN TitleList ON CompletedTitles.title_id = TitleList.title_id
+                            WHERE (CompletedTitles.player_id = :player_id AND CompletedTitles.title_id = :swap_id)""",
+                            {'player_id': player_id, 'swap_id': swap_id})
+            swap_title = cursor.fetchone()
+            #print(swap_title)
+
+            ### ERROR MESSAGE IF PLAYER DOES NOT HAVE TITLE ###
+            if swap_title is None:
+                await ctx.send(f"ERROR: You have not completed the title with ID {swap_id}. Use `!profile` to check the IDs of your titles.")
+                connection.close()
+                return
+            
+            swap_position, swap_name = swap_title
+            
+            ### SWAP POSITIONS ###
+            cursor.execute("""UPDATE CompletedTitles
+                            SET title_id = :swap_id
+                            WHERE (player_id = :player_id AND position = :title_position)""",
+                            {'player_id': player_id, 'swap_id': swap_id, 'title_position': title_position})
+            cursor.execute("""UPDATE CompletedTitles
+                            SET title_id = :title_id
+                            WHERE (player_id = :player_id AND position = :swap_position)""",
+                            {'player_id': player_id, 'title_id': title_id, 'swap_position': swap_position})
+            
+            ### CONFIRMATION MESSAGE ###
+            await ctx.send(f"{title_name} and {swap_name} have been swapped.")
 
         connection.commit()
         connection.close()
@@ -1245,6 +1434,9 @@ class ReleaseButtonMenu(discord.ui.View):
 ### SELECT MENU FOR ACTIVE TITLE ###
 class ActiveTitleSelectMenu(discord.ui.View):
     caller_id = None
+    active_title_id = None
+    active_title = None
+    active_title_position = 1
 
     ### MENU TIMES OUT AFTER 60 SECONDS ###
     def __init__(self, caller_id, titles):
@@ -1256,7 +1448,7 @@ class ActiveTitleSelectMenu(discord.ui.View):
             option = discord.SelectOption(label=title[1], value=title[0])
             if title[2] == 1:
                 option.label += " <ACTIVE>"
-                self.active_title_id = title[0]
+                self.active_title_id = int(title[0])
                 self.active_title = title[1]
             options.append(option)
 
@@ -1279,35 +1471,59 @@ class ActiveTitleSelectMenu(discord.ui.View):
     async def select_callback(self, interaction):
         user_id = interaction.user.id
         new_active_title_id = int(self.select.values[0])
-        #print(new_active_title_id)
-        #print(self.active_title_id)
 
-        ### DO NOTHING IF ACTIVE TITLE IS SELECTED ###
         if (user_id == self.caller_id):
 
+            ### CHANGE ACTIVE TITLE IF NEW TITLE IS SELECTED, THEN DISABLE MENU ###
             if (new_active_title_id != self.active_title_id):
-
-                ### CHANGE ACTIVE TITLE IF NEW TITLE IS SELECTED, THEN DISABLE MENU ###
+                
                 connection = sqlite3.connect("./cogs/idol_gacha.db")
                 cursor = connection.cursor()
 
-                ### DEACTIVATE OLD ACTIVE TITLE ###
-                cursor.execute("""UPDATE CompletedTitles SET active_title = 0
-                                WHERE title_id == :active_title_id""",
-                                {'active_title_id': self.active_title_id})
+                ### GET NEW ACTIVE TITLE POSITION ###
+                cursor.execute("""SELECT position
+                                FROM CompletedTitles
+                                WHERE (player_id = :caller_id AND title_id = :new_active_title_id)
+                                ORDER BY position DESC""",
+                                {'caller_id': self.caller_id, 'new_active_title_id': new_active_title_id})
+                new_active_title_position = cursor.fetchone()[0]
 
-                ### ACTIVATE NEW ACTIVE TITLE ###
-                cursor.execute("""UPDATE CompletedTitles SET active_title = 1
-                                WHERE title_id == :new_active_title_id""",
-                                {'new_active_title_id': new_active_title_id})
-                cursor.execute("""SELECT title_name FROM TitleList
+                ### SHIFT DOWN TITLES BETWEEN NEW & OLD ACTIVE TITLES ###
+                cursor.execute("""SELECT position, title_id
+                                FROM CompletedTitles
+                                WHERE (player_id = :caller_id AND position < :new_active_title_position AND position >= 1)
+                                ORDER BY position DESC""",
+                                {'caller_id': self.caller_id, 'new_active_title_position': new_active_title_position})
+                titles_to_move = cursor.fetchall()
+                print(titles_to_move)
+
+                for position, moving_title_id in titles_to_move:
+                    new_position = position + 1
+                    cursor.execute("""UPDATE CompletedTitles
+                                    SET title_id = :moving_title_id
+                                    WHERE (player_id = :caller_id AND position = :new_position)""",
+                                    {'caller_id': self.caller_id, 'moving_title_id': moving_title_id, 'new_position': new_position})
+                print("other titles shifted down")
+
+                ### PLACE NEW ACTIVE TITLE IN POSITION 1 ###
+                cursor.execute("""UPDATE CompletedTitles
+                                SET title_id = :new_active_title_id
+                                WHERE (player_id = :caller_id AND position = 1)""",
+                                {'caller_id': self.caller_id, 'new_active_title_id': new_active_title_id})
+                print("active title updated")
+                
+                ### GET NEW ACTIVE TITLE NAME ###
+                cursor.execute("""SELECT title_name
+                                FROM TitleList
                                 WHERE title_id == :new_active_title_id""",
                                 {'new_active_title_id': new_active_title_id})
                 new_active_title = cursor.fetchone()[0]
+                print(new_active_title)
 
                 connection.commit()
                 connection.close()
 
+                ### CONFIRMATION MESSAGE ###
                 content=f"<@{self.caller_id}>'s active title has been updated to {new_active_title}."
 
                 ### DISABLE MENU ###
@@ -1316,6 +1532,7 @@ class ActiveTitleSelectMenu(discord.ui.View):
                     child.placeholder = new_active_title
                 await interaction.response.edit_message(view=self)
             
+            ### DO NOTHING IF ACTIVE TITLE IS SELECTED ###
             else:
                 content=f"ERROR: <@{self.caller_id}>'s active title is already {self.active_title}."
 
