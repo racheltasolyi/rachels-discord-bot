@@ -205,7 +205,7 @@ class Gacha(commands.Cog):
                     uploaded_group_logo = discord.File(f"./cogs/gacha_images/logos/{group_logo}", filename=group_logo)
 
                 ### BUILD CARD ###
-                card = discord.Embed(title=idol_name, description=group_name, color=discord.Color.green())
+                card = discord.Embed(title=idol_name, description=group_name, color=discord.Color.red())
                 if group_logo:
                     card.set_thumbnail(url=f"attachment://{group_logo}")
                 card.set_footer(text=f"Owner: {ctx.author.name}", icon_url=ctx.author.avatar)
@@ -289,7 +289,7 @@ class Gacha(commands.Cog):
         card = discord.Embed(
             title=f"{ctx.author.name}'s Idol Catcher Profile",
             description=f"### {active_title_name}",
-            color=discord.Color.green())
+            color=discord.Color.purple())
 
         if active_logo is not None:
             uploaded_active_logo = discord.File(f"./cogs/gacha_images/logos/{active_logo}", filename=active_logo)
@@ -383,7 +383,7 @@ class Gacha(commands.Cog):
         connection.close()
     
     ### !IDOLS COMMAND: DISPLAY PLAYER'S IDOLS IN A PAGINATED MENU ###
-    @commands.command(aliases=["party"])
+    @commands.command(aliases=["i", "party"])
     async def idols(self, ctx):
         
         ### FETCH PLAYER'S IDOLS ###
@@ -785,6 +785,87 @@ class Gacha(commands.Cog):
 
         connection.commit()
         connection.close()
+
+    ### !TUTORIAL COMMAND: BRIEF OVERVIEW OF IDOL CATCHER ###
+    @commands.command(aliases=["t"])
+    async def tutorial(self, ctx):
+
+        ### INITIALIZE CARD ###
+        card = discord.Embed(
+            title="Idol Catcher Tutorial",
+            description="Welcome to the Idol Catcher alpha, where you can roll and collect your favorite idols. Please note that your progress will not be saved after the alpha. Use `!gacha` to start playing.\nAlpha Test: 3/8/2025 - 3/16/2025",
+            color=discord.Color.blue())
+        
+        card.set_footer(text="Use !idolhelp for additional help and commands.")
+
+        card.add_field(
+                name="Rolling",
+                value="* Use `!gacha` or `!g` to roll.\n* You get 10 rolls per hour. Rolls reset on the hour.\n* You can only catch idols that you roll.\n* If another player owns an idol, you cannot catch it, even if you roll it.",
+                inline=False)
+        
+        card.add_field(
+                name="Your Party",
+                value="* Use `!profile` to see your player profile with your top 5 idols, or use `!idols` to see your full party.\n* Use `!moveidol` to rearrange your party.",
+                inline=False)
+        
+        card.add_field(
+                name="Release",
+                value="* Use `!release <Idol ID>` to release an idol from your party.\n* Use `!profile` or `!idols` to see your idols' IDs.",
+                inline=False)
+        
+        await ctx.send(embed=card)
+    
+    ### !HELP COMMAND: EXPLANATION OF ALL COMMANDS ###
+    @commands.command(aliases=["h"])
+    async def idolhelp(self, ctx):
+
+        ### INITIALIZE CARD ###
+        card = discord.Embed(
+            title="Idol Catcher Commands",
+            description="Use `!idolhelp <command>` for more details about a command.",
+            color=discord.Color.blue())
+        
+        card.add_field(
+                name="Key",
+                value="`!command <parameter> [optional parameter]`",
+                inline=False)
+
+        card.add_field(
+                name="!gacha",
+                value="`!g`\n* Rolls a random idol.\n* If the idol is wild, the player may catch it.\n* If another player already owns the idol, it cannot be caught.\n* Players get 10 rolls per hour. Rolls reset on the hour.",
+                inline=False)
+        
+        card.add_field(
+                name="!profile [user]",
+                value="`!pf`\n* Pokeballs are unlimited, but you can only hold up to 10 idols at a time.\n* Use `!moveidol` to rearrange your party.",
+                inline=False)
+        
+        card.add_field(
+                name="!idols",
+                value="`!profile [user]` `!p`\n* See your player profile card with your top 5 idols.\n* Enter another player to see their profile card.",
+                inline=False)
+        
+        card.add_field(
+                name="!moveidol",
+                value="`!mi` `!movei` `!midol`\n* See your player profile card with your top 5 idols.\n* Enter another player to see their profile card.",
+                inline=False)
+        
+        card.add_field(
+                name="Release",
+                value="`!release <Idol ID>` `!r`\n* Release the specified idol from your party.\n* Use `!profile` or `!idols` to see your idols' IDs.",
+                inline=False)
+        
+        card.add_field(
+                name="Profile",
+                value="`!profile [user]` `!p`\n* See your player profile card with your top 5 idols.\n* Enter another player to see their profile card.",
+                inline=False)
+        
+        card.add_field(
+                name="Profile",
+                value="`!profile [user]` `!p`\n* See your player profile card with your top 5 idols.\n* Enter another player to see their profile card.",
+                inline=False)
+        
+        await ctx.send(embed=card)
 
     ### !RESETGACHA ADMIN COMMAND: RESET GACHA GAME ###
     @commands.command(aliases=["rg"])
@@ -1620,7 +1701,7 @@ class IdolsListPagesFormatter(menus.ListPageSource):
     async def format_page(self, menu, entries):
         embed = discord.Embed(
             title=f"{menu.ctx.author}'s Party",
-            color=discord.Color.green()
+            color=discord.Color.teal()
         )
 
         party_list = ""
