@@ -845,7 +845,7 @@ class Gacha(commands.Cog):
             
             card.add_field(
                     name="Notes",
-                    value="* Players have unlimited pokeballs.\n* Idols can only be caught by the player who rolled it.\n* Non-wild (owned) idols can be rolled.\n* If an owned idol is rolled, it cannot be caught.\n* Players get 10 rolls per hour. Rolls reset on the hour.\n* Pokeball button times out after 60 seconds.\n* Ping Admin SoulDaiDa to change your idol's picture.",
+                    value="* Players have unlimited pokeballs.\n* Idols can only be caught by the player who rolled it.\n* Non-wild (owned) idols can be rolled.\n* If an owned idol is rolled, it cannot be caught.\n* Players get 10 rolls per hour. Rolls reset on the hour.\n* Ping Admin SoulDaiDa to change your idol's picture.\n* Pokeball button times out after 60 seconds of inaction.",
                     inline=False)
 
         ### !IDOLHELP RELEASE ###
@@ -857,7 +857,7 @@ class Gacha(commands.Cog):
 
             card.add_field(
                     name="Parameters",
-                    value="1. Idol ID (can be found with `!profile` or `!idols`).\nExample: `!release 0`",
+                    value="1. Idol ID (can be found with `!profile` or `!idols`)\nExample: `!release 0`",
                     inline=False)
             
             card.add_field(
@@ -867,7 +867,7 @@ class Gacha(commands.Cog):
             
             card.add_field(
                     name="Notes",
-                    value="* The player is prompted for confirmation before release.\n* Once confirmed, this cannot be reversed.",
+                    value="* The player is prompted for confirmation before release.\n* Once confirmed, this cannot be reversed.\n* Confirmation times out after 60 seconds of inaction.",
                     inline=False)
 
         ### !IDOLHELP PROFILE ###
@@ -911,7 +911,7 @@ class Gacha(commands.Cog):
             
             card.add_field(
                     name="Notes",
-                    value="* Each page displays 10 idols.",
+                    value="* Each page displays 10 idols.\n* Navigation buttons time out after 60 seconds of inaction.",
                     inline=False)
             
         ### !IDOLHELP MOVEIDOL ###
@@ -923,7 +923,7 @@ class Gacha(commands.Cog):
 
             card.add_field(
                     name="Parameters",
-                    value="1. Idol1 ID (can be found with `!profile` or `!idols`).\n2. Idol2 ID OR `up` OR `down`\n3. (optional) Number of positions to be moved up or down\nExample: `!moveidol 0 down 3` or `!moveidol 0 14`",
+                    value="1. Idol1 ID (can be found with `!profile` or `!idols`)\n2. Idol2 ID OR `up` OR `down`\n3. (optional) Number of positions to be moved up or down\nExample: `!moveidol 0 down 3` or `!moveidol 0 14`",
                     inline=False)
             
             card.add_field(
@@ -933,7 +933,7 @@ class Gacha(commands.Cog):
             
             card.add_field(
                     name="Notes",
-                    value="* Use `Idol2 ID` to switch the positions of Idol1 and Idol2.\n* Use `up` or `down` to move Idol1 up or down the party list.\n* Use `up [number]` or `down [number]` to move Idol1 up or down that many times.",
+                    value="* Use `Idol2 ID` to switch the positions of Idol1 and Idol2.\n* Use `up` or `down` to move Idol1 up or down the party list once.\n* Use `up [number]` or `down [number]` to move Idol1 up or down that many times.",
                     inline=False)
             
         ### !IDOLHELP TUTORIAL ###
@@ -1004,7 +1004,7 @@ class Gacha(commands.Cog):
             
             card.add_field(
                     name="!moveidol <Idol1 ID> <Idol2 ID/up/down> [number]",
-                    value="Aliases: `!mi` `!movei` `!midol`\Move Idol1 around in your party list.",
+                    value="Aliases: `!mi` `!movei` `!midol`\nMove Idol1 around in your party list.",
                     inline=False)
             
             card.add_field(
