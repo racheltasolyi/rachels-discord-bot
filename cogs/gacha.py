@@ -60,7 +60,7 @@ class Gacha(commands.Cog):
         
         ### IF PLAYER IS NEW, ADD NEW PLAYER TO DATABASE ###
         if player is None:
-            self.createplayer(ctx, cursor)
+            self.createplayer(ctx, roller_id, cursor)
             cursor.execute("""SELECT * FROM Players
                             WHERE player_id = :roller_id""",
                             {'roller_id': roller_id})
@@ -230,9 +230,17 @@ class Gacha(commands.Cog):
     
     ### !PROFILE COMMAND: DISPLAY PLAYER'S PROFILE CARD ###
     @commands.command(aliases=["pf"])
-    async def profile(self, ctx):
-
-        player_id = ctx.author.id
+    async def profile(self, ctx, member: discord.Member = None):
+        
+        if member is None:
+            player_id = ctx.author.id
+            player_name = ctx.author.name
+            avatar = ctx.author.avatar
+        else:
+            player_id = member.id
+            player_name = member.name
+            avatar = member.avatar
+        print(player_id)
 
         ### FETCH PLAYER FROM DB ###
         connection = sqlite3.connect("./cogs/idol_gacha.db")
@@ -246,7 +254,7 @@ class Gacha(commands.Cog):
         
         ### IF PLAYER IS NEW, ADD NEW PLAYER TO DATABASE ###
         if player is None:
-            self.createplayer(ctx, cursor)
+            self.createplayer(ctx, player_id, cursor)
             cursor.execute("""SELECT * FROM Players
                             WHERE player_id = :roller_id""",
                             {'roller_id': player_id})
@@ -261,7 +269,6 @@ class Gacha(commands.Cog):
                         WHERE player_id = :player_id""",
                         {'player_id': player_id})
         idol_list = cursor.fetchall()
-        print(idol_list)
 
         ### FETCH PLAYER'S ACTIVE TITLE & LOGO ###
         cursor.execute("""SELECT TitleList.title_name, Groups.group_logo
@@ -287,7 +294,7 @@ class Gacha(commands.Cog):
 
         ### BUILD PLAYER PROFILE CARD ###
         card = discord.Embed(
-            title=f"{ctx.author.name}'s Idol Catcher Profile",
+            title=f"{player_name}'s Idol Catcher Profile",
             description=f"### {active_title_name}",
             color=discord.Color.purple())
 
@@ -295,7 +302,7 @@ class Gacha(commands.Cog):
             uploaded_active_logo = discord.File(f"./cogs/gacha_images/logos/{active_logo}", filename=active_logo)
             card.set_thumbnail(url=f"attachment://{active_logo}")
         else:
-            card.set_thumbnail(url=ctx.author.avatar)
+            card.set_thumbnail(url=avatar)
         
         ### FETCH & SET PLAYER'S ACTIVE IDOL IMAGE ###
         if (len(idol_list) > 0):
@@ -1293,9 +1300,7 @@ class Gacha(commands.Cog):
             await ctx.send("You do not have permission for this command.")
     
     ### PRIVATE FUNCTION: ADD NEW PLAYER TO DATABASE ###
-    def createplayer(self, ctx, cursor):
-
-        player_id = ctx.author.id
+    def createplayer(self, ctx, player_id, cursor):
         
         ### ADD NEW PLAYER TO PLAYERS ###
         cursor.execute("""INSERT INTO Players (player_id, player_username)
