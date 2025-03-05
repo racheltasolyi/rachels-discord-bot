@@ -5,8 +5,8 @@
 - **!release [x] | !r**: Releases the idol with the ID of [x] from player's party
   - Sends the idol card and asks for confirmation
   - "Cancel" button cancels the command
-- **!profile | !p**: Displays player's profile with their earned titles and top 10 party members
-- **!idols | !party**: Displays a paginated list of all idols in the player's party
+- **!profile | !pf**: Displays player's profile with their earned titles and top 10 party members
+- **!idols | !i | !party**: Displays a paginated list of all idols in the player's party
 - **!activetitle | !picktitle | !title**: Sends a dropdown menu which lets the player change their active title
 - **!moveidol [x] [up/down/id] (n) | !mi | !movei | !midol**: Reorganize player's idol list by moving the idol with Idol ID [x]
   - "up" (or "u") moves idol up the list (n) times (default is 1)
