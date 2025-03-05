@@ -326,7 +326,7 @@ class Gacha(commands.Cog):
 
         ### FORMAT AND DISPLAY IDOLS IF ANY ###
         party_list = ""
-        for i in range(10):
+        for i in range(5):
             if i >= len(idol_list):
                 break
             if idol_list[i][0] < 10:
@@ -339,7 +339,7 @@ class Gacha(commands.Cog):
         if (len(idol_list) == 0):
             party_list = "Party is empty -- Use `!gacha` to catch an idol!"
         card.add_field(
-            name=f"Top 10 Party Members:",
+            name=f"Top Party Members:",
             value=party_list,
             inline=False
         )
@@ -800,14 +800,14 @@ class Gacha(commands.Cog):
         ### INITIALIZE CARD ###
         card = discord.Embed(
             title="Idol Catcher Tutorial",
-            description="Welcome to the Idol Catcher alpha, where you can roll and collect your favorite idols. Please note that your progress will not be saved after the alpha. Use `!gacha` to start playing.\nAlpha Test: 3/8/2025 - 3/16/2025",
+            description="Alpha Test: 3/8/2025 - 3/16/2025\nWelcome to the Idol Catcher alpha, where you can roll and collect your favorite idols. Please note that your progress will not be saved after the alpha. Use `!gacha` to start playing.",
             color=discord.Color.blue())
         
         card.set_footer(text="Use !idolhelp for additional help and commands.")
 
         card.add_field(
                 name="Rolling",
-                value="* Use `!gacha` or `!g` to roll.\n* You get 10 rolls per hour. Rolls reset on the hour.\n* You can only catch idols that you roll.\n* If another player owns an idol, you cannot catch it, even if you roll it.",
+                value="* Use `!gacha` or `!g` to roll.\n* You get 10 rolls per hour. Rolls reset on the hour.\n* You can only catch idols that you roll.\n* If another player owns an idol, you cannot catch it, even if you roll it.\n* You can change an idol's picture once you catch it. Ping Admin SoulDaiDa for this.",
                 inline=False)
         
         card.add_field(
@@ -845,7 +845,7 @@ class Gacha(commands.Cog):
             
             card.add_field(
                     name="Notes",
-                    value="* Players have unlimited pokeballs.\n* Idols can only be caught by the player who rolled it.\n* Non-wild (owned) idols can be rolled.\n* If an owned idol is rolled, it cannot be caught.\n* Players get 10 rolls per hour. Rolls reset on the hour.\n* Pokeball button times out after 60 seconds.",
+                    value="* Players have unlimited pokeballs.\n* Idols can only be caught by the player who rolled it.\n* Non-wild (owned) idols can be rolled.\n* If an owned idol is rolled, it cannot be caught.\n* Players get 10 rolls per hour. Rolls reset on the hour.\n* Pokeball button times out after 60 seconds.\n* Ping Admin SoulDaiDa to change your idol's picture.",
                     inline=False)
 
         ### !IDOLHELP RELEASE ###
@@ -901,7 +901,7 @@ class Gacha(commands.Cog):
 
             card.add_field(
                     name="Parameters",
-                    value=f"1. (optional) @User\nExample: `!idols @{ctx.author.name}`",
+                    value="None",
                     inline=False)
             
             card.add_field(
@@ -911,7 +911,7 @@ class Gacha(commands.Cog):
             
             card.add_field(
                     name="Notes",
-                    value="* If no parameter is given, your party is displayed.\n* Each page displays 10 idols.",
+                    value="* Each page displays 10 idols.",
                     inline=False)
             
         ### !IDOLHELP MOVEIDOL ###
@@ -998,8 +998,8 @@ class Gacha(commands.Cog):
                     inline=False)
             
             card.add_field(
-                    name="!idols [user]",
-                    value="Aliases: `!i`\nSee your idols or another user's idols.",
+                    name="!idols",
+                    value="Aliases: `!i` `!party`\nSee your full list of idols.",
                     inline=False)
             
             card.add_field(
