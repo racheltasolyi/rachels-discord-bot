@@ -1317,7 +1317,7 @@ class GachaButtonMenu(discord.ui.View):
 
     ### BUTTON TIMES OUT AFTER 60 SECONDS ###
     def __init__(self, roll_number, roller_id):
-        super().__init__(timeout=10)
+        super().__init__(timeout=60)
         self.roll_number = roll_number
         self.roller_id = roller_id
 
@@ -1338,36 +1338,55 @@ class GachaButtonMenu(discord.ui.View):
         cursor = connection.cursor()
         #print("connection made")
 
-        ### FETCH IDOL NAME ###
-        cursor.execute("""SELECT * FROM Idols
+        ### FETCH IDOL NAME AND CHECK IF CAUGHT ###
+        cursor.execute("""SELECT idol_name FROM Idols
                           WHERE idol_id = :roll_number""",
                         {'roll_number': self.roll_number})
-        roll = cursor.fetchone()
-        roll_name = roll[1]
-        #print(roll)
+        roll_name = cursor.fetchone()[0]
 
-        ### SUCCESSFULLY CATCH IDOL IF CORRECT PLAYER, THEN DISABLE BUTTON ###
+        cursor.execute("""SELECT player_id FROM PartyPositions
+                          WHERE idol_id = :roll_number""",
+                        {'roll_number': self.roll_number})
+        owner_id = cursor.fetchone()
+
+        ### SUCCESSFULLY CATCH IDOL IF CORRECT PLAYER AND IDOL IS WILD, THEN DISABLE BUTTON ###
         if (userid == self.roller_id):
-            ### GET PLAYER'S NEXT AVAILABLE POSITION ###
-            cursor.execute("""SELECT party_position FROM PartyPositions
-                            WHERE (player_id = :roller_id AND idol_id IS NULL)""",
-                            {'roller_id': self.roller_id})
-            party_position = cursor.fetchone()[0]
-            print(party_position)
+            if owner_id is None:
+                ### GET PLAYER'S NEXT AVAILABLE POSITION ###
+                cursor.execute("""SELECT party_position FROM PartyPositions
+                                WHERE (player_id = :roller_id AND idol_id IS NULL)""",
+                                {'roller_id': self.roller_id})
+                party_position = cursor.fetchone()
 
-            ### ADD IDOL ID TO CORRECT PARTY POSITION ##
-            cursor.execute("""UPDATE PartyPositions
-                            SET idol_id = :roll_number
-                            WHERE (player_id = :roller_id AND party_position = :party_position)""",
-                            {'roll_number': self.roll_number,
-                             'roller_id': self.roller_id,
-                             'party_position': party_position})
-            content=f"{roll_name} was caught by {interaction.user.mention}!"
-            for button in self.children:
-                button.disabled = True
-                button.label = f"{roll_name} has been caught!"
-            await self.message.edit(view=self)
-            #print(roll)
+                ### IF PARTY IS FULL, SEND ERROR ###
+                if party_position is None:
+                    content=f"{interaction.user.mention}, your party is full! Use `!release` to make space for {roll_name}."
+
+                ### IF PARTY IS NOT FULL, ADD IDOL ID TO CORRECT PARTY POSITION ##
+                else:
+                    party_position = party_position[0]
+                    print(party_position)
+                    cursor.execute("""UPDATE PartyPositions
+                                    SET idol_id = :roll_number
+                                    WHERE (player_id = :roller_id AND party_position = :party_position)""",
+                                    {'roll_number': self.roll_number,
+                                    'roller_id': self.roller_id,
+                                    'party_position': party_position})
+                    content=f"{roll_name} was caught by {interaction.user.mention}!"
+                    for button in self.children:
+                        button.disabled = True
+                        button.label = f"{roll_name} has been caught!"
+                    await self.message.edit(view=self)
+                    #print(roll)
+
+            ### IF IDOL IS ALREADY CAUGHT, SEND ERROR AND DISABLE BUTTON ###
+            else:
+                owner_id = owner_id[0]
+                content=f"Oops, {roll_name} has already been caught by <@{owner_id}>!"
+                for button in self.children:
+                    button.disabled = True
+                    button.label = f"{roll_name} has been caught!"
+                await self.message.edit(view=self)
 
         ### FAIL IF DIFFERENT PLAYER ###
         else:
