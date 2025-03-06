@@ -22,7 +22,7 @@ class Gacha(commands.Cog):
         #print(f"roller_id = {roller_id}")
 
         ### SPECIFY HIGHEST IDOL ID ###
-        len_idols = 42
+        len_idols = 244
 
         ### ADMIN COMMAND: ROLL SPECIFIED IDOL ###
         if (arg != None):
@@ -38,7 +38,7 @@ class Gacha(commands.Cog):
         ### DETERMINE ROLL NUMBER ###
         else:
             #roll_number = 29
-            roll_number = random.randrange(len_idols + 1) # excludes last number
+            roll_number = random.randrange(len_idols + 1) # randrange() excludes last number
             
         print(roll_number)
 
@@ -266,7 +266,8 @@ class Gacha(commands.Cog):
                         INNER JOIN Idols ON PartyPositions.idol_id = Idols.idol_id
                         INNER JOIN GroupMembers ON Idols.idol_id = GroupMembers.idol_id
                         INNER JOIN Groups ON GroupMembers.group_id = Groups.group_id
-                        WHERE player_id = :player_id""",
+                        WHERE player_id = :player_id
+                        LIMIT 5""",
                         {'player_id': player_id})
         idol_list = cursor.fetchall()
 
@@ -326,16 +327,22 @@ class Gacha(commands.Cog):
 
         ### FORMAT AND DISPLAY IDOLS IF ANY ###
         party_list = ""
-        for i in range(5):
-            if i >= len(idol_list):
-                break
-            if idol_list[i][0] < 10:
+        max_digits = len(str(max(idol_list))) # max_digits=3, num_digits=1, spaces=2
+        for idol in idol_list:
+            spaces = ""
+            num_digits = len(str(idol[0]))
+            for i in range(max_digits - num_digits):
+                spaces += " " #figure space (numerical digits) U+2007
+            '''if idol[0] < 10:
                 #spaces = " " #n-space
                 #spaces = "⠀" #braille blank
-                spaces = " " #figure space (numerical digits) U+2007
-            elif idol_list[i][0] >= 10 and idol_list[i][0] <100:
-                spaces = ""
-            party_list += "`" + spaces + f"{idol_list[i][0]}` `{idol_list[i][3]}` {idol_list[i][1]}\n"
+                for i in range(max_digits):
+                    spaces += " " #figure space (numerical digits) U+2007
+            elif idol[0] >= 10 and idol[0] <100:
+                spaces = " "
+            elif idol[0] >= 100 and idol[0] <1000:
+                spaces = ""'''
+            party_list += "`" + spaces + f"{idol[0]}` `{idol[3]}` {idol[1]}\n"
         if (len(idol_list) == 0):
             party_list = "Party is empty -- Use `!gacha` to catch an idol!"
         card.add_field(
@@ -1058,10 +1065,10 @@ class Gacha(commands.Cog):
             
             ### IF NO ARGS OR MORE THAN 2 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) == 0:
-                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addtitle \"[Name of Title]\" [(optional)Title ID]`\nExample: `!addtitle \"Stay (Stray Kids Stan)\"`")
+                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addtitle \"[Name of Title]\"`\nExample: `!addtitle \"Stay (Stray Kids Stan)\"`")
                 return
             elif len(args) > 2:
-                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addtitle \"[Name of Title]\" [(optional)Title ID]`\nExample: `!addtitle \"Stay (Stray Kids Stan)\"`")
+                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addtitle \"[Name of Title]\"`\nExample: `!addtitle \"Stay (Stray Kids Stan)\"`")
                 return
             
             ### IF AT LEAST 1 ARG, ADD TITLE TO DATABASE ###
@@ -1107,10 +1114,10 @@ class Gacha(commands.Cog):
             
             ### IF LESS THAN 2 ARGS OR MORE THAN 4 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) < 2:
-                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Title ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
+                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Title ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
                 return
             elif len(args) > 4:
-                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Title ID] [(optional)Group ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
+                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addgroup \"[Name of Group]\" [Group Logo Filename] [(optional)Title ID]`\nExample: `!addgroup \"Stray Kids\" skz_logo.jpg 1`")
                 return
 
             ### IF AT LEAST 2 ARGS, ADD GROUP TO DATABASE ###
@@ -1195,10 +1202,10 @@ class Gacha(commands.Cog):
             
             ### IF LESS THAN 2 ARGS OR MORE THAN 4 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) < 2:
-                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID] [(optional)Idol ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
+                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
                 return
             elif len(args) > 4:
-                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID] [(optional)Idol ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
+                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
                 return
 
             ### IF AT LEAST 2 ARGS, ADD IDOL TO DATABASE ###
@@ -1272,7 +1279,10 @@ class Gacha(commands.Cog):
                 card.add_field(name=f"{new_idol_name} successfully added!", value="New idol has been added to the database.", inline=False)
 
                 try:
-                    await ctx.send(files=[uploaded_new_idol_image, uploaded_new_idol_group_logo], embed=card)
+                    if new_idol_group_logo:
+                        await ctx.send(files=[uploaded_new_idol_image, uploaded_new_idol_group_logo], embed=card)
+                    else:
+                        await ctx.send(files=[uploaded_new_idol_image], embed=card)
                 except Exception as e:
                     print(f"Error while sending new idol card: {e}")
 
@@ -1605,23 +1615,23 @@ class ReleaseButtonMenu(discord.ui.View):
 
             ### MOVE REMAINING IDOLS' PARTY POSITIONS UP BY 1 ###
             cursor.execute("""SELECT party_position, idol_id FROM PartyPositions
-                            WHERE party_position > :empty_position""",
-                            {'empty_position': empty_position})
+                            WHERE (player_id = :owner_id AND party_position > :empty_position)""",
+                            {'owner_id': self.owner_id, 'empty_position': empty_position})
             idols_to_move = cursor.fetchall()
 
             for party_position, moving_idol_id in idols_to_move:
                 new_position = party_position - 1
                 cursor.execute("""UPDATE PartyPositions
                                 SET idol_id = :moving_idol_id
-                                WHERE party_position = :new_position""",
-                                {'moving_idol_id': moving_idol_id, 'new_position': new_position})
+                                WHERE (player_id = :owner_id AND party_position = :new_position)""",
+                                {'moving_idol_id': moving_idol_id, 'owner_id': self.owner_id, 'new_position': new_position})
             
             ### FREE UP LAST PARTY POSITION ###
             final_position = idols_to_move[-1][0]
             cursor.execute("""UPDATE PartyPositions
                             SET idol_id = NULL
-                            WHERE party_position = :final_position""",
-                            {'final_position': final_position})
+                            WHERE (player_id = :owner_id AND party_position = :final_position)""",
+                            {'owner_id': self.owner_id, 'final_position': final_position})
 
             ### DISABLE MENU ###
             for button in self.children:
@@ -1632,7 +1642,7 @@ class ReleaseButtonMenu(discord.ui.View):
 
         ### FAIL IF DIFFERENT PLAYER (IDOL NOT YET RELEASED) ###
         else:
-            content=f"ERROR: Only <@{self.owner_id}> has permission to use this menu!"
+            content=f"Nice try, <@{user_id}>, only <@{self.owner_id}> has permission to use this menu!"
 
         connection.commit()
         connection.close()
@@ -1832,37 +1842,54 @@ class IdolsListPages(discord.ui.View, menus.MenuPages):
 
     async def interaction_check(self, interaction):
         """Only allow the author that invoke the command to be able to use the interaction"""
+        print(interaction.user)
+        print(self.ctx.author)
         return interaction.user == self.ctx.author
 
     @discord.ui.button(emoji='⏮️', style=discord.ButtonStyle.blurple)
     async def first_page(self, interaction, button):
-        await self.show_page(0)
-        await interaction.response.defer()
+        if (await self.interaction_check(interaction)):
+            await self.show_page(0)
+            await interaction.response.defer()
+        else:
+            await interaction.response.send_message(content=f"This interaction can only be used by {self.ctx.author}")
 
     @discord.ui.button(emoji='◀️', style=discord.ButtonStyle.blurple)
     async def before_page(self, interaction, button):
-        await self.show_checked_page(self.current_page - 1)
-        await interaction.response.defer()
+        if (await self.interaction_check(interaction)):
+            await self.show_checked_page(self.current_page - 1)
+            await interaction.response.defer()
+        else:
+            await interaction.response.send_message(content=f"This interaction can only be used by {self.ctx.author}")
 
     @discord.ui.button(emoji='▶️', style=discord.ButtonStyle.blurple)
     async def next_page(self, interaction, button):
-        await self.show_checked_page(self.current_page + 1)
-        await interaction.response.defer()
+        if (await self.interaction_check(interaction)):
+            await self.show_checked_page(self.current_page + 1)
+            await interaction.response.defer()
+        else:
+            await interaction.response.send_message(content=f"This interaction can only be used by {self.ctx.author}")
 
     @discord.ui.button(emoji='⏭️', style=discord.ButtonStyle.blurple)
     async def last_page(self, interaction, button):
-        await self.show_page(self._source.get_max_pages() - 1)
-        await interaction.response.defer()
+        if (await self.interaction_check(interaction)):
+            await self.show_page(self._source.get_max_pages() - 1)
+            await interaction.response.defer()
+        else:
+            await interaction.response.send_message(content=f"This interaction can only be used by {self.ctx.author}")
     
     @discord.ui.button(emoji='⏹️', style=discord.ButtonStyle.gray)
     async def stop_page(self, interaction, button):
-        self.stop()
-        for child in self.children:
-            if not child.disabled:
-                child.disabled = True
-        await self.message.edit(view=self)
-        #await self.message.edit(view=None)
-        await interaction.response.defer()
+        if (await self.interaction_check(interaction)):
+            self.stop()
+            for child in self.children:
+                if not child.disabled:
+                    child.disabled = True
+            await self.message.edit(view=self)
+            #await self.message.edit(view=None)
+            await interaction.response.defer()
+        else:
+            await interaction.response.send_message(content=f"This interaction can only be used by {self.ctx.author}")
 
 
 ### FORMATS PAGES FOR !IDOLS ###
@@ -1876,10 +1903,12 @@ class IdolsListPagesFormatter(menus.ListPageSource):
         party_list = ""
         for idol in entries:
             if idol[0] < 10:
-                spaces = " " #figure space (numerical digits) U+2007
+                spaces = "  " #figure space (numerical digits) U+2007
             elif idol[0] >= 10 and idol[0] <100:
+                spaces = " "
+            elif idol[0] >= 100 and idol[0] <1000:
                 spaces = ""
-            party_list += "`" + spaces + f"{idol[0]}` `{idol[2]}` {idol[1]}\n"
+            party_list += "`" + spaces + f"{idol[0]}` `{idol[2]}` {idol[1]}\n"
         embed.add_field(
             name="",
             value=party_list,
