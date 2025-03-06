@@ -4,6 +4,7 @@ from discord.ext import commands, menus
 from discord.ext.menus import button, First, Last
 import random
 import sqlite3
+from datetime import datetime
 
 class Gacha(commands.Cog):
     def __init__(self, bot):
@@ -22,7 +23,7 @@ class Gacha(commands.Cog):
         #print(f"roller_id = {roller_id}")
 
         ### SPECIFY HIGHEST IDOL ID ###
-        len_idols = 244
+        len_idols = 244 # about 4% chance to roll a specific idol with each 10 pull
 
         ### ADMIN COMMAND: ROLL SPECIFIED IDOL ###
         if (arg != None):
@@ -52,7 +53,7 @@ class Gacha(commands.Cog):
         cursor = connection.cursor()
         #print("connection made")
 
-        cursor.execute("""SELECT * FROM Players
+        cursor.execute("""SELECT rolls_left, max_rolls, last_roll_timestamp FROM Players
                           WHERE player_id = :roller_id""",
                         {'roller_id': roller_id})
         player = cursor.fetchone()
@@ -61,11 +62,43 @@ class Gacha(commands.Cog):
         ### IF PLAYER IS NEW, ADD NEW PLAYER TO DATABASE ###
         if player is None:
             self.createplayer(ctx, roller_id, cursor)
-            cursor.execute("""SELECT * FROM Players
+            cursor.execute("""SELECT rolls_left, max_rolls, last_roll_timestamp FROM Players
                             WHERE player_id = :roller_id""",
                             {'roller_id': roller_id})
             player = cursor.fetchone()
             #print(player)
+        
+        rolls_left, max_rolls, last_roll_timestamp = player
+        print(last_roll_timestamp)
+        
+        ### UPDATE AND GET NEW TIMESTAMP OF PLAYER'S LAST ROLL ###
+        cursor.execute("""UPDATE Players
+                          SET last_roll_timestamp = DATETIME('now', 'localtime')
+                          WHERE player_id = :roller_id""",
+                        {'roller_id': roller_id})
+        cursor.execute("""SELECT last_roll_timestamp FROM Players
+                            WHERE player_id = :roller_id""",
+                            {'roller_id': roller_id})
+        current_roll_timestamp = cursor.fetchone()[0]
+        print(current_roll_timestamp)
+
+        ### IF LAST ROLL WAS BEFORE THE HOURLY RESET, RESET PLAYER'S ROLLS_LEFT TO MAX ###
+        last_dt = datetime.strptime(last_roll_timestamp, "%Y-%m-%d %H:%M:%S")
+        current_dt = datetime.strptime(current_roll_timestamp, "%Y-%m-%d %H:%M:%S")
+        if (last_dt.date() == current_dt.date() and last_dt.hour == current_dt.hour):
+            reset = False
+        else:
+            reset = True
+        
+        if reset:
+            print("Resetting rolls")
+            cursor.execute("""UPDATE Players
+                          SET rolls_left = :max_rolls
+                          WHERE player_id = :roller_id""",
+                        {'max_rolls': max_rolls, 'roller_id': roller_id})
+            rolls_left = max_rolls
+        
+        ### IF NO ROLLS LEFT, SEND HOW MANY MINUTES UNTIL NEXT RESET ###
 
         ### FETCH THE ROLLED IDOL AND THEIR GROUP ###
         cursor.execute("""SELECT Idols.idol_name, Idols.idol_image, GroupMembers.group_id, Groups.group_name, Groups.group_logo
@@ -143,11 +176,7 @@ class Gacha(commands.Cog):
                 view = GachaButtonMenu(roll_number, roller_id)
                 view.message = await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=view)
         
-        ### UPDATE TIMESTAMP OF PLAYER'S LAST ROLL ###
-        cursor.execute("""UPDATE Players
-                          SET last_roll_timestamp = DATETIME('now', 'localtime')
-                          WHERE player_id = :roller_id""",
-                        {'roller_id': roller_id})
+        
 
         connection.commit()
         connection.close()
