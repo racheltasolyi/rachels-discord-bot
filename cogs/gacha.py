@@ -286,7 +286,7 @@ class Gacha(commands.Cog):
             active_title_name, active_logo = active_title
 
         ### FETCH ALL OF PLAYER'S TITLES WITH IDS ###
-        cursor.execute("""SELECT TitleList.title_name, CompletedTitles.title_id
+        cursor.execute("""SELECT CompletedTitles.title_id, TitleList.title_name
                         FROM CompletedTitles
                         INNER JOIN TitleList ON CompletedTitles.title_id = TitleList.title_id
                         WHERE (CompletedTitles.player_id = :player_id AND CompletedTitles.position > 1)""",
@@ -313,12 +313,13 @@ class Gacha(commands.Cog):
 
         ### FORMAT AND DISPLAY TITLES IF ANY ###
         formatted_titles = ""
+        max_digits = len(str(max(titles)[0]))
         for title in titles:
-            if title[1] < 10:
-                spaces = " " #figure space (numerical digits) U+2007
-            else: # title[1] >= 10 and title[1] <100:
-                spaces = ""
-            formatted_titles += "`" + spaces + f"{title[1]}` {title[0]}\n"
+            spaces = ""
+            num_digits = len(str(title[0]))
+            for i in range(max_digits - num_digits):
+                spaces += " " #figure space (numerical digits) U+2007
+            formatted_titles += "`" + spaces + f"{title[0]}` {title[1]}\n"
         if len(titles) > 0:
             card.add_field(
                 name=f"Titles:",
@@ -327,21 +328,12 @@ class Gacha(commands.Cog):
 
         ### FORMAT AND DISPLAY IDOLS IF ANY ###
         party_list = ""
-        max_digits = len(str(max(idol_list))) # max_digits=3, num_digits=1, spaces=2
+        max_digits = len(str(max(idol_list)[0])) # max_digits=3, num_digits=1, spaces=2
         for idol in idol_list:
             spaces = ""
             num_digits = len(str(idol[0]))
             for i in range(max_digits - num_digits):
                 spaces += " " #figure space (numerical digits) U+2007
-            '''if idol[0] < 10:
-                #spaces = " " #n-space
-                #spaces = "⠀" #braille blank
-                for i in range(max_digits):
-                    spaces += " " #figure space (numerical digits) U+2007
-            elif idol[0] >= 10 and idol[0] <100:
-                spaces = " "
-            elif idol[0] >= 100 and idol[0] <1000:
-                spaces = ""'''
             party_list += "`" + spaces + f"{idol[0]}` `{idol[3]}` {idol[1]}\n"
         if (len(idol_list) == 0):
             party_list = "Party is empty -- Use `!gacha` to catch an idol!"
@@ -1901,13 +1893,12 @@ class IdolsListPagesFormatter(menus.ListPageSource):
         )
 
         party_list = ""
+        max_digits = len(str(max(entries)[0]))
         for idol in entries:
-            if idol[0] < 10:
-                spaces = "  " #figure space (numerical digits) U+2007
-            elif idol[0] >= 10 and idol[0] <100:
-                spaces = " "
-            elif idol[0] >= 100 and idol[0] <1000:
-                spaces = ""
+            spaces = ""
+            num_digits = len(str(idol[0]))
+            for i in range(max_digits - num_digits):
+                spaces += " " #figure space (numerical digits) U+2007
             party_list += "`" + spaces + f"{idol[0]}` `{idol[2]}` {idol[1]}\n"
         embed.add_field(
             name="",
