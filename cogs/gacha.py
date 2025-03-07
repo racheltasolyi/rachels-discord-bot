@@ -913,17 +913,14 @@ class Gacha(commands.Cog):
             title="!gacha command",
             description="Aliases: `!g`",
             color=discord.Color.blue())
-
             card.add_field(
                     name="Parameters",
                     value="None",
                     inline=False)
-
             card.add_field(
                     name="Function",
                     value="Roll a random idol. If the idol is wild, the player may catch it.",
                     inline=False)
-            
             card.add_field(
                     name="Notes",
                     value="* Players have unlimited pokeballs.\n* Idols can only be caught by the player who rolled it.\n* Non-wild (owned) idols can be rolled.\n* If an owned idol is rolled, it cannot be caught.\n* Players get 10 rolls per hour. Rolls reset on the hour.\n* Ping Admin SoulDaiDa to change your idol's picture.\n* Pokeball button times out after 60 seconds of inaction.",
@@ -935,17 +932,14 @@ class Gacha(commands.Cog):
             title="!release command",
             description="Aliases: `!r`",
             color=discord.Color.blue())
-
             card.add_field(
                     name="Parameters",
                     value="1. Idol ID (can be found with `!profile` or `!idols`)\nExample: `!release 0`",
                     inline=False)
-            
             card.add_field(
                     name="Function",
                     value="Release the specified idol.",
                     inline=False)
-            
             card.add_field(
                     name="Notes",
                     value="* The player is prompted for confirmation before release.\n* Once confirmed, this cannot be reversed.\n* Confirmation times out after 60 seconds of inaction.",
@@ -957,20 +951,36 @@ class Gacha(commands.Cog):
             title="!profile command",
             description="Aliases: `!pf`",
             color=discord.Color.blue())
-
             card.add_field(
                     name="Parameters",
                     value=f"1. (optional) @User\nExample: `!profile @{ctx.author.name}`",
                     inline=False)
-            
             card.add_field(
                     name="Function",
                     value="Display player's profile.",
                     inline=False)
-            
             card.add_field(
                     name="Notes",
                     value="* If no parameter is given, your profile is displayed.\n* The profile displays the user's top 5 party members and their top idol's picture.",
+                    inline=False)
+        
+        ### !IDOLHELP VIEW ###
+        elif arg in {"view", "v", "!view", "!v"}:
+            card = discord.Embed(
+            title="!view command",
+            description="Aliases: `!v`",
+            color=discord.Color.blue())
+            card.add_field(
+                    name="Parameters",
+                    value="1. Idol ID (can be found with `!profile` or `!idols`)\nExample: `!view 0`",
+                    inline=False)
+            card.add_field(
+                    name="Function",
+                    value="View a captured idol card.",
+                    inline=False)
+            card.add_field(
+                    name="Notes",
+                    value="* Wild idols cannot be viewed.\n* You can view idols that are in other players' parties.",
                     inline=False)
             
         ### !IDOLHELP IDOLS ###
@@ -979,17 +989,14 @@ class Gacha(commands.Cog):
             title="!idols command",
             description="Aliases: `!i` `!party`",
             color=discord.Color.blue())
-
             card.add_field(
                     name="Parameters",
                     value="None",
                     inline=False)
-            
             card.add_field(
                     name="Function",
                     value="Display player's full party as a paginated list.",
                     inline=False)
-            
             card.add_field(
                     name="Notes",
                     value="* Each page displays 10 idols.\n* Navigation buttons time out after 60 seconds of inaction.",
@@ -1001,17 +1008,14 @@ class Gacha(commands.Cog):
             title="!moveidol command",
             description="Aliases: `!mi` `!movei` `!midol`",
             color=discord.Color.blue())
-
             card.add_field(
                     name="Parameters",
                     value="1. Idol1 ID (can be found with `!profile` or `!idols`)\n2. Idol2 ID OR `up` OR `down`\n3. (optional) Number of positions to be moved up or down\nExample: `!moveidol 0 down 3` or `!moveidol 0 14`",
                     inline=False)
-            
             card.add_field(
                     name="Function",
                     value="Adjusts Idol1's position in user's party list.",
                     inline=False)
-            
             card.add_field(
                     name="Notes",
                     value="* Use `Idol2 ID` to switch the positions of Idol1 and Idol2.\n* Use `up` or `down` to move Idol1 up or down the party list once.\n* Use `up [number]` or `down [number]` to move Idol1 up or down that many times.",
@@ -1023,12 +1027,10 @@ class Gacha(commands.Cog):
             title="!tutorial command",
             description="Aliases: `!t`",
             color=discord.Color.blue())
-
             card.add_field(
                     name="Parameters",
                     value="None",
                     inline=False)
-
             card.add_field(
                     name="Function",
                     value="Exactly what you expect.",
@@ -1040,12 +1042,10 @@ class Gacha(commands.Cog):
             title="!idolhelp command",
             description="Aliases: `!h` `!ih`",
             color=discord.Color.blue())
-
             card.add_field(
                     name="Parameters",
                     value="None",
                     inline=False)
-
             card.add_field(
                     name="Function",
                     value="Really?",
@@ -1057,42 +1057,38 @@ class Gacha(commands.Cog):
                 title="Idol Catcher Commands",
                 description="Use `!idolhelp <command>` for more details about a command.",
                 color=discord.Color.blue())
-            
             card.add_field(
                     name="Key: !command <parameter> [optional parameter]",
                     value="",
                     inline=False)
-
             card.add_field(
                     name="!gacha",
                     value="Aliases: `!g`\nRoll a random idol.",
                     inline=False)
-            
             card.add_field(
                     name="!release <Idol ID>",
                     value="Aliases: `!r`\nRelease the specified idol from your party.",
                     inline=False)
-            
             card.add_field(
                     name="!profile [user]",
                     value="Aliases: `!pf`\nSee your profile or another user's profile.",
                     inline=False)
-            
+            card.add_field(
+                    name="!view <Idol ID>",
+                    value="Aliases: `!v`\nView an idol card if someone owns it.",
+                    inline=False)
             card.add_field(
                     name="!idols",
                     value="Aliases: `!i` `!party`\nSee your full list of idols.",
                     inline=False)
-            
             card.add_field(
                     name="!moveidol <Idol1 ID> <Idol2 ID/up/down> [number]",
                     value="Aliases: `!mi` `!movei` `!midol`\nMove Idol1 around in your party list.",
                     inline=False)
-            
             card.add_field(
                     name="!tutorial",
                     value="Aliases: `!t`\nDisplays the tutorial for Idol Catcher.",
                     inline=False)
-            
             card.add_field(
                     name="!idolhelp",
                     value="Aliases: `!h` `!ih`",
