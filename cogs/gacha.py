@@ -286,6 +286,7 @@ class Gacha(commands.Cog):
                             WHERE player_id = :roller_id""",
                             {'roller_id': player_id})
             player = cursor.fetchone()
+        print(player)
 
         ### FETCH ALL OF PLAYER'S IDOLS ###
         cursor.execute("""SELECT PartyPositions.idol_id, Idols.idol_name, Idols.idol_image, Groups.group_name
@@ -297,6 +298,7 @@ class Gacha(commands.Cog):
                         LIMIT 5""",
                         {'player_id': player_id})
         idol_list = cursor.fetchall()
+        print(idol_list)
 
         ### FETCH PLAYER'S ACTIVE TITLE & LOGO ###
         cursor.execute("""SELECT TitleList.title_name, Groups.group_logo
@@ -306,6 +308,7 @@ class Gacha(commands.Cog):
                         WHERE (CompletedTitles.player_id = :player_id AND CompletedTitles.position = 1)""",
                         {'player_id': player_id})
         active_title = cursor.fetchone()
+        print(active_title)
         if active_title is None:
             active_title_name = "Trainee"
             active_logo = None
@@ -319,6 +322,7 @@ class Gacha(commands.Cog):
                         WHERE (CompletedTitles.player_id = :player_id AND CompletedTitles.position > 1)""",
                         {'player_id': player_id})
         titles = cursor.fetchall()
+        print(titles)
 
         ### BUILD PLAYER PROFILE CARD ###
         card = discord.Embed(
@@ -418,7 +422,7 @@ class Gacha(commands.Cog):
         if group_logo is not None:
             uploaded_group_logo = discord.File(f"./cogs/gacha_images/logos/{group_logo}", filename=group_logo)
 
-        card = discord.Embed(title=f"{idol_name} `{idol_id}`", description=group_name, color=discord.Color.purple())
+        card = discord.Embed(title=f"{idol_name} `{group_name}`", description=f"ID: {idol_id}", color=discord.Color.purple())
         if group_logo is not None:
             card.set_thumbnail(url=f"attachment://{group_logo}")
         card.set_image(url=f"attachment://{idol_image}")
