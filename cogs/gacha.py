@@ -176,8 +176,6 @@ class Gacha(commands.Cog):
                 view = GachaButtonMenu(roll_number, roller_id)
                 view.message = await ctx.send(files=[uploaded_roll_image, uploaded_roll_logo], embed=card, view=view)
         
-        
-
         connection.commit()
         connection.close()
     
@@ -387,6 +385,61 @@ class Gacha(commands.Cog):
         connection.commit()
         connection.close()
     
+    ### !VIEW COMMAND: VIEW A CAPTURED IDOL ###
+    @commands.command(aliases=["v"])
+    async def view(self, ctx, arg: int = None):
+
+        ### GET IDOL ID ###
+        idol_id = arg
+        print(idol_id)
+
+        ### FETCH THE ROLLED IDOL, THEIR GROUP, AND OWNER ###
+        connection = sqlite3.connect("./cogs/idol_gacha.db")
+        cursor = connection.cursor()
+        cursor.execute("""SELECT Idols.idol_name, Idols.idol_image, Groups.group_name, Groups.group_logo, PartyPositions.player_id
+                        FROM PartyPositions
+                        INNER JOIN GroupMembers ON PartyPositions.idol_id = GroupMembers.idol_id
+                        INNER JOIN Groups ON GroupMembers.group_id = Groups.group_id
+                        INNER JOIN Idols ON GroupMembers.idol_id = Idols.idol_id
+                        WHERE PartyPositions.idol_id = :idol_id""",
+                        {'idol_id': idol_id})
+        idol = cursor.fetchone()
+        
+        if idol is None:
+            await ctx.send("That idol has not been captured or does not exist.")
+            connection.close()
+            return
+        
+        ### GET IDOL'S INFORMATION ###
+        idol_name, idol_image, group_name, group_logo, owner_id = idol
+
+        ### BUILD IDOL CARD ###
+        uploaded_idol_image = discord.File(f"./cogs/gacha_images/idols/{idol_image}", filename=idol_image)
+        if group_logo is not None:
+            uploaded_group_logo = discord.File(f"./cogs/gacha_images/logos/{group_logo}", filename=group_logo)
+
+        card = discord.Embed(title=f"{idol_name} `{idol_id}`", description=group_name, color=discord.Color.purple())
+        if group_logo is not None:
+            card.set_thumbnail(url=f"attachment://{group_logo}")
+        card.set_image(url=f"attachment://{idol_image}")
+        card.set_footer(text=f"Requested by {ctx.author.name}", icon_url=ctx.author.avatar)
+        #print("Embed created!")
+
+        ### DISPLAY IDOL CARD ###
+        owner_name = await ctx.bot.fetch_user(owner_id)
+        card.add_field(
+            name=f"Owner: {owner_name}",
+            value="",
+            inline=False
+        )
+        if group_logo is None:
+            await ctx.send(files=[uploaded_idol_image], embed=card)
+        else:
+            await ctx.send(files=[uploaded_idol_image, uploaded_group_logo], embed=card)
+        
+        connection.commit()
+        connection.close()
+
     ### !RELEASE COMMAND: RELEASE SPECIFIED IDOL ###
     @commands.command(aliases=["picktitle", "title", "at"])
     async def activetitle(self, ctx):
