@@ -15,6 +15,10 @@
   - giving another idol's [id] swaps the positions of the 2 idols
 - **!movetitle [x] [up/down/id] (n) | !mt | !movet | !mtitle**: Reorganize player's title list by moving the title with Title ID [x]
   - parameters work the same way as `!moveidol`
+- **!tutorial | !tut**: Sends an overview of how to play Idol Catcher
+- **!idolhelp [c] | !h**: Sends an explanation of the command [c] or a full list of Idol Catcher commands
+  - Does not include admin commands
+
 - **!resetgacha | !rg**: Admin only. Releases all caught idols back into the wild
 - **!addtitle "[x]" | !newtitle**: Admin only. Adds a new title named [x] to the database
   - Optional 2nd argument for the new title's ID

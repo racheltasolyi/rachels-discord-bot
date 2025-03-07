@@ -450,6 +450,112 @@ class Gacha(commands.Cog):
         connection.commit()
         connection.close()
 
+    ### !TRADE COMMAND: TRADE YOUR IDOL WITH ANOTHER PLAYER'S IDOL ###
+    @commands.command(aliases=["t"])
+    async def trade(self, ctx, *args):
+
+        ### IF NOT ENOUGH OR TOO MANY ARGS, DISPLAY CORRECT SYNTAX ###
+        if len(args) < 3:
+            await ctx.send("ERROR: Insufficient parameters. Please use the following syntax:\n`!trade <@User> <Your Idol ID> <Target Idol ID>`\nExample: `!trade @souldaida 0 14`")
+            return
+        if len(args) > 3:
+            await ctx.send("ERROR: Too many parameters. Please use the following syntax:\n`!trade <@User> <Your Idol ID> <Target Idol ID>`\nExample: `!trade @souldaida 0 14`")
+            return
+        
+        ### FAIL IF USER IS NOT MENTIONED CORRECTLY ###
+        try:
+            trade_user = await commands.MemberConverter().convert(ctx, args[0])
+        except commands.CommandError:
+            await ctx.send(f"ERROR: Invalid mention: {args[0]}")
+            return
+
+        user_id = ctx.author.id
+        trade_user_id = trade_user.id
+
+        ### FAIL IF USER TRADES WITH SELF ###
+        if user_id == trade_user_id:
+            await ctx.send("ERROR: You cannot trade with yourself.")
+            return
+
+        ### FAIL IF 2ND OR 3RD ARGS ARE NOT INTS ###
+        try:
+            user_idol_id = int(args[1])
+        except (ValueError, TypeError):
+            await ctx.send("ERROR: Your Idol ID was invalid. Please enter a number using the following syntax:\n`!trade <@User> <Your Idol ID> <Target Idol ID>`\nExample: `!trade @souldaida 0 14`")
+            return
+
+        try:
+            trade_idol_id = int(args[2])
+        except (ValueError, TypeError):
+            await ctx.send("ERROR: Target Idol ID was invalid. Please enter a number using the following syntax:\n`!trade <@User> <Your Idol ID> <Target Idol ID>`\nExample: `!trade @souldaida 0 14`")
+            return
+        
+        user_name = ctx.author.name
+        trade_user_name = await ctx.bot.fetch_user(trade_user_id)
+
+        ### FETCH IDOL ###
+        connection = sqlite3.connect("./cogs/idol_gacha.db")
+        cursor = connection.cursor()
+        cursor.execute("""SELECT Idols.idol_name, Groups.group_name
+                        FROM PartyPositions
+                        INNER JOIN Idols ON PartyPositions.idol_id = Idols.idol_id
+                        INNER JOIN GroupMembers ON PartyPositions.idol_id = GroupMembers.idol_id
+                        INNER JOIN Groups ON GroupMembers.group_id = Groups.group_id
+                        WHERE (PartyPositions.player_id = :user_id AND Idols.idol_id = :idol_id)""",
+                        {'user_id': user_id, 'idol_id': user_idol_id})
+        user_idol = cursor.fetchone()
+
+        ### ERROR MESSAGE IF IDOL NOT IN PLAYER'S PARTY ###
+        if user_idol is None:
+            await ctx.send(f"ERROR: The idol could not be found in your party. Use `!profile` or `!idols` to check the IDs of your idols.")
+            connection.close()
+            return
+
+        ### FETCH TRADE IDOL ###
+        cursor.execute("""SELECT Idols.idol_name, Groups.group_name
+                        FROM PartyPositions
+                        INNER JOIN Idols ON PartyPositions.idol_id = Idols.idol_id
+                        INNER JOIN GroupMembers ON PartyPositions.idol_id = GroupMembers.idol_id
+                        INNER JOIN Groups ON GroupMembers.group_id = Groups.group_id
+                        WHERE (PartyPositions.player_id = :user_id AND Idols.idol_id = :idol_id)""",
+                        {'user_id': trade_user_id, 'idol_id': trade_idol_id})
+        trade_idol = cursor.fetchone()
+
+        ### ERROR MESSAGE IF TRADE IDOL NOT IN TRADE PLAYER'S PARTY ###
+        if trade_idol is None:
+            await ctx.send(f"ERROR: The target idol could not be found in <@{trade_user_id}>'s party.")
+            connection.close()
+            return
+        
+        ### GET IDOL'S INFO ###
+        user_idol_name, user_group_name = user_idol
+        trade_idol_name, trade_group_name = trade_idol
+
+        ### BUILD CARD ###
+        card = discord.Embed(title=f"Trade requested by {user_name}", description="", color=discord.Color.gold())
+        card.add_field(
+            name=f"{user_name}",
+            value=f"`{user_idol_id}` `{user_group_name}` {user_idol_name}",
+            inline=False
+        )
+        card.add_field(
+            name=f"{trade_user_name}",
+            value=f"`{trade_idol_id}` `{trade_group_name}` {trade_idol_name}",
+            inline=False
+        )
+        card.add_field(
+            name="Do you accept this trade?",
+            value="Press your buttons to confirm in the next 60 seconds.",
+            inline=False
+        )
+
+        ### SEND CONFIRMATION BUTTONS ###
+        view = TradeButtonMenu(user_id, user_name, user_idol_id, user_idol_name, trade_user_id, trade_user_name, trade_idol_id, trade_idol_name)
+        view.message = await ctx.send(embed=card, view=view)
+
+        connection.commit()
+        connection.close()
+
     ### !RELEASE COMMAND: RELEASE SPECIFIED IDOL ###
     @commands.command(aliases=["picktitle", "title", "at"])
     async def activetitle(self, ctx):
@@ -885,7 +991,7 @@ class Gacha(commands.Cog):
         connection.close()
 
     ### !TUTORIAL COMMAND: BRIEF OVERVIEW OF IDOL CATCHER ###
-    @commands.command(aliases=["t"])
+    @commands.command(aliases=["tut"])
     async def tutorial(self, ctx):
 
         ### INITIALIZE CARD ###
@@ -1032,10 +1138,10 @@ class Gacha(commands.Cog):
                     inline=False)
             
         ### !IDOLHELP TUTORIAL ###
-        elif arg in {"tutorial", "t", "!tutorial", "!t"}:
+        elif arg in {"tutorial", "tut", "!tutorial", "!tut"}:
             card = discord.Embed(
             title="!tutorial command",
-            description="Aliases: `!t`",
+            description="Aliases: `!tut`",
             color=discord.Color.blue())
             card.add_field(
                     name="Parameters",
@@ -1097,7 +1203,7 @@ class Gacha(commands.Cog):
                     inline=False)
             card.add_field(
                     name="!tutorial",
-                    value="Aliases: `!t`\nDisplays the tutorial for Idol Catcher.",
+                    value="Aliases: `!tut`\nDisplays the tutorial for Idol Catcher.",
                     inline=False)
             card.add_field(
                     name="!idolhelp",
@@ -1769,6 +1875,188 @@ class ReleaseButtonMenu(discord.ui.View):
             content=f"ERROR: Only <@{self.caller_id}> has permission to use this menu!"
 
         await interaction.response.send_message(content=content)
+
+
+### BUTTON MENU FOR !TRADE CONFIRMATION ###
+class TradeButtonMenu(discord.ui.View):
+
+    ### MENU TIMES OUT AFTER 60 SECONDS ###
+    def __init__(self, user_id1, user_name1, idol_id1, idol_name1, user_id2, user_name2, idol_id2, idol_name2):
+        super().__init__(timeout=60)
+        self.user_id1 = user_id1
+        self.user_name1 = user_name1
+        self.idol_id1 = idol_id1
+        self.idol_name1 = idol_name1
+        self.user_id2 = user_id2
+        self.user_name2 = user_name2
+        self.idol_id2 = idol_id2
+        self.idol_name2 = idol_name2
+        self.confirm1 = False
+        self.confirm2 = False
+
+        self.tradeconfirmation1.label = user_name1
+        #self.tradeconfirmation1.label = "Test1"
+        self.tradeconfirmation2.label = user_name2
+
+    ### BUTTONS DISABLE UPON TIMEOUT ###
+    async def on_timeout(self) -> None:
+        for button in self.children:
+            if not button.disabled:
+                button.disabled = True
+        await self.message.edit(view=self)
+    
+    ### CONFIRMATION BUTTON 1 ###
+    @discord.ui.button(label="Loading", style=discord.ButtonStyle.blurple)
+    async def tradeconfirmation1(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        user_id = interaction.user.id
+
+        ### FAIL IF DIFFERENT PLAYER TRIES TO USE BUTTONS ###
+        if (user_id != self.user_id1):
+            await interaction.response.send_message(content=f"<@{user_id}>, only <@{self.user_id1}> can confirm with this button!")
+
+        ### CHANGE & DISABLE BUTTON IF CORRECT USER ###
+        else:
+            ### CHANGE & DISABLE BUTTON ###
+            for button in self.children:
+                if button.label == f"{self.user_name1}":
+                #if button.label == "Test1":
+                    button.disabled = True
+                    button.label = f"Accepted"
+                    button.style = discord.ButtonStyle.green
+            await self.message.edit(view=self)
+
+            ### SEND CONFIRMATION MESSAGE
+            self.confirm1 = True
+            await interaction.response.send_message(content=f"<@{self.user_id1}> has accepted.")
+
+            ### TRADE IF BOTH USERS HAVE CONFIRMED ###
+            if self.confirm1 and self.confirm2:
+                trade_confirmation = await self.trade()
+                await interaction.followup.send(content=trade_confirmation)
+    
+    ### CONFIRMATION BUTTON 2 ###
+    @discord.ui.button(label="Loading", style=discord.ButtonStyle.blurple)
+    async def tradeconfirmation2(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        user_id = interaction.user.id
+
+        ### FAIL IF DIFFERENT PLAYER TRIES TO USE BUTTONS ###
+        if (user_id != self.user_id1):
+            await interaction.response.send_message(content=f"<@{user_id}>, only <@{self.user_id2}> can confirm with this button!")
+
+        ### CHANGE & DISABLE BUTTON IF CORRECT USER ###
+        else:
+            ### CHANGE & DISABLE BUTTON ###
+            for button in self.children:
+                if button.label == f"{self.user_name2}":
+                    button.disabled = True
+                    button.label = f"Accepted"
+                    button.style = discord.ButtonStyle.green
+            await self.message.edit(view=self)
+
+            ### SEND CONFIRMATION MESSAGE
+            self.confirm2 = True
+            await interaction.response.send_message(content=f"<@{self.user_id2}> has accepted.")
+
+            ### TRADE IF BOTH USERS HAVE CONFIRMED ###
+            if self.confirm1 and self.confirm2:
+                trade_confirmation = await self.trade()
+                await interaction.followup.send(content=trade_confirmation)
+
+    ### CANCEL BUTTON: MENU IS DEACTIVATED ###
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.grey)
+    async def releasecancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        user_id = interaction.user.id
+
+        ### CANCEL COMMAND IF CORRECT USER, THEN DISABLE MENU ###
+        if (user_id == self.user_id1 or user_id == self.user_id2):
+
+            content=f"The trade has been canceled."
+
+            ### DISABLE MENU ###
+            for button in self.children:
+                button.disabled = True
+            await self.message.edit(view=self)
+
+        ### FAIL IF DIFFERENT PLAYER ###
+        else:
+            content=f"<@{user_id}>, only <@{self.user_id1}> and <@{self.user_id2}> have permission to use this menu!"
+
+        await interaction.response.send_message(content=content)
+    
+    ### TRADE FUNCTION ###
+    async def trade(self):
+
+        connection = sqlite3.connect("./cogs/idol_gacha.db")
+        cursor = connection.cursor()
+
+        ### GET IDOL1'S PARTY POSITION BEFORE TRADING ###
+        cursor.execute("""SELECT party_position
+                        FROM PartyPositions
+                        WHERE idol_id = :idol_id1""",
+                        {'idol_id1': self.idol_id1})
+        empty_position = cursor.fetchone()[0]
+
+        ### MOVE USER1'S REMAINING IDOLS' PARTY POSITIONS UP BY 1 ###
+        cursor.execute("""SELECT party_position, idol_id FROM PartyPositions
+                        WHERE (player_id = :user_id1 AND party_position > :empty_position)""",
+                        {'user_id1': self.user_id1, 'empty_position': empty_position})
+        idols_to_move = cursor.fetchall()
+
+        for party_position, moving_idol_id in idols_to_move:
+            new_position = party_position - 1
+            cursor.execute("""UPDATE PartyPositions
+                            SET idol_id = :moving_idol_id
+                            WHERE (player_id = :user_id1 AND party_position = :new_position)""",
+                            {'moving_idol_id': moving_idol_id, 'user_id1': self.user_id1, 'new_position': new_position})
+        
+        ### PUT IDOL2 IN USER1'S FINAL PARTY POSITION ###
+        final_position = idols_to_move[-1][0]
+        cursor.execute("""UPDATE PartyPositions
+                        SET idol_id = :idol_id2
+                        WHERE (player_id = :user_id1 AND party_position = :final_position)""",
+                        {'idol_id2': self.idol_id2, 'user_id1': self.user_id1, 'final_position': final_position})
+        
+        ### GET IDOL2'S PARTY POSITION BEFORE TRADING ###
+        cursor.execute("""SELECT party_position
+                        FROM PartyPositions
+                        WHERE idol_id = :idol_id2""",
+                        {'idol_id2': self.idol_id2})
+        empty_position = cursor.fetchone()[0]
+
+        ### MOVE USER2'S REMAINING IDOLS' PARTY POSITIONS UP BY 1 ###
+        cursor.execute("""SELECT party_position, idol_id FROM PartyPositions
+                        WHERE (player_id = :user_id2 AND party_position > :empty_position)""",
+                        {'user_id2': self.user_id2, 'empty_position': empty_position})
+        idols_to_move = cursor.fetchall()
+
+        for party_position, moving_idol_id in idols_to_move:
+            new_position = party_position - 1
+            cursor.execute("""UPDATE PartyPositions
+                            SET idol_id = :moving_idol_id
+                            WHERE (player_id = :user_id2 AND party_position = :new_position)""",
+                            {'moving_idol_id': moving_idol_id, 'user_id2': self.user_id2, 'new_position': new_position})
+        
+        ### PUT IDOL1 IN USER2'S FINAL PARTY POSITION ###
+        final_position = idols_to_move[-1][0]
+        cursor.execute("""UPDATE PartyPositions
+                        SET idol_id = :idol_id1
+                        WHERE (player_id = :user_id2 AND party_position = :final_position)""",
+                        {'idol_id1': self.idol_id1, 'user_id2': self.user_id2, 'final_position': final_position})
+        
+        connection.commit()
+        connection.close()
+
+        ### DISABLE REMAINING BUTTON ###
+        for button in self.children:
+            button.disabled = True
+        await self.message.edit(view=self)
+
+        ### RETURN CONFIRMATION ###
+        confirmation = f"{self.idol_name1} and {self.idol_name2} have successfully been traded!"
+        return confirmation
         
 
 ### SELECT MENU FOR ACTIVE TITLE ###
