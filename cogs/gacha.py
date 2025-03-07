@@ -456,10 +456,10 @@ class Gacha(commands.Cog):
 
         ### IF NOT ENOUGH OR TOO MANY ARGS, DISPLAY CORRECT SYNTAX ###
         if len(args) < 3:
-            await ctx.send("ERROR: Insufficient parameters. Please use the following syntax:\n`!trade <@User> <Your Idol ID> <Target Idol ID>`\nExample: `!trade @souldaida 0 14`")
+            await ctx.send("ERROR: Insufficient parameters. Please use the following syntax:\n`!trade <@User> <Your Idol ID> <User's Idol ID>`\nExample: `!trade @souldaida 0 14`")
             return
         if len(args) > 3:
-            await ctx.send("ERROR: Too many parameters. Please use the following syntax:\n`!trade <@User> <Your Idol ID> <Target Idol ID>`\nExample: `!trade @souldaida 0 14`")
+            await ctx.send("ERROR: Too many parameters. Please use the following syntax:\n`!trade <@User> <Your Idol ID> <User's Idol ID>`\nExample: `!trade @souldaida 0 14`")
             return
         
         ### FAIL IF USER IS NOT MENTIONED CORRECTLY ###
@@ -481,13 +481,13 @@ class Gacha(commands.Cog):
         try:
             user_idol_id = int(args[1])
         except (ValueError, TypeError):
-            await ctx.send("ERROR: Your Idol ID was invalid. Please enter a number using the following syntax:\n`!trade <@User> <Your Idol ID> <Target Idol ID>`\nExample: `!trade @souldaida 0 14`")
+            await ctx.send("ERROR: Your Idol ID was invalid. Please enter a number using the following syntax:\n`!trade <@User> <Your Idol ID> <User's Idol ID>`\nExample: `!trade @souldaida 0 14`")
             return
 
         try:
             trade_idol_id = int(args[2])
         except (ValueError, TypeError):
-            await ctx.send("ERROR: Target Idol ID was invalid. Please enter a number using the following syntax:\n`!trade <@User> <Your Idol ID> <Target Idol ID>`\nExample: `!trade @souldaida 0 14`")
+            await ctx.send("ERROR: User's Idol ID was invalid. Please enter a number using the following syntax:\n`!trade <@User> <Your Idol ID> <User's Idol ID>`\nExample: `!trade @souldaida 0 14`")
             return
         
         user_name = ctx.author.name
@@ -523,7 +523,7 @@ class Gacha(commands.Cog):
 
         ### ERROR MESSAGE IF TRADE IDOL NOT IN TRADE PLAYER'S PARTY ###
         if trade_idol is None:
-            await ctx.send(f"ERROR: The target idol could not be found in <@{trade_user_id}>'s party.")
+            await ctx.send(f"ERROR: The requested idol could not be found in <@{trade_user_id}>'s party.")
             connection.close()
             return
         
@@ -1013,8 +1013,13 @@ class Gacha(commands.Cog):
                 inline=False)
         
         card.add_field(
+                name="Trading",
+                value="* Use `!trade <@User> <Idol ID> <Idol ID>` to trade idols with another player.\n* Use `!profile` or `!idols` to see your idols' IDs.",
+                inline=False)
+        
+        card.add_field(
                 name="Release",
-                value="* Use `!release <Idol ID>` to release an idol from your party.\n* Use `!profile` or `!idols` to see your idols' IDs.",
+                value="* Use `!release <Idol ID>` to release an idol from your party.",
                 inline=False)
         
         await ctx.send(embed=card)
@@ -1097,6 +1102,25 @@ class Gacha(commands.Cog):
             card.add_field(
                     name="Notes",
                     value="* Wild idols cannot be viewed.\n* You can view idols that are in other players' parties.",
+                    inline=False)
+            
+        ### !IDOLHELP TRADE ###
+        elif arg in {"trade", "t", "!trade", "!t"}:
+            card = discord.Embed(
+            title="!trade command",
+            description="Aliases: `!t`",
+            color=discord.Color.blue())
+            card.add_field(
+                    name="Parameters",
+                    value="1. @User you want to trade with\n2. Idol ID from your party (can be found with `!profile` or `!idols`)\n3. Idol ID from User's party\nExample: `!trade @souldaida 0 14`",
+                    inline=False)
+            card.add_field(
+                    name="Function",
+                    value="Trade your idol with another player's idol.",
+                    inline=False)
+            card.add_field(
+                    name="Notes",
+                    value="* Both players must confirm the trade with their respective buttons.\n* Either player may cancel the trade.\n* Trade auto-times out after 60 seconds of inaction.",
                     inline=False)
             
         ### !IDOLHELP IDOLS ###
@@ -1192,6 +1216,10 @@ class Gacha(commands.Cog):
             card.add_field(
                     name="!view <Idol ID>",
                     value="Aliases: `!v`\nView an idol card if someone owns it.",
+                    inline=False)
+            card.add_field(
+                    name="!trade <@User> <Your Idol ID> <User's Idol ID>",
+                    value="Aliases: `!t`\nTrade your idol with another user's idol.",
                     inline=False)
             card.add_field(
                     name="!idols",

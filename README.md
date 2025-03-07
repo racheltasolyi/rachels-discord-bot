@@ -7,6 +7,9 @@
   - "Cancel" button cancels the command
 - **!profile | !pf**: Displays player's profile with their earned titles and top 10 party members
 - **!view [x] | !v**: Displays card of idol with the ID of [x] if it is currently captured
+- **!trade [@u] [x] [y] | !t**: Trades player's idol with ID of [x] with player [u]'s idol with ID of [y]
+  - Sends the trade offer and asks for confirmation from both players
+  - "Cancel" button cancels the trade
 - **!idols | !i | !party**: Displays a paginated list of all idols in the player's party
 - **!activetitle | !picktitle | !title**: Sends a dropdown menu which lets the player change their active title
 - **!moveidol [x] [up/down/id] (n) | !mi | !movei | !midol**: Reorganize player's idol list by moving the idol with Idol ID [x]
