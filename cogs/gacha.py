@@ -335,44 +335,49 @@ class Gacha(commands.Cog):
             card.set_thumbnail(url=f"attachment://{active_logo}")
         else:
             card.set_thumbnail(url=avatar)
+        print("logo set")
         
         ### FETCH & SET PLAYER'S ACTIVE IDOL IMAGE ###
         if (len(idol_list) > 0):
             active_idol_image = idol_list[0][2]
             uploaded_active_idol_image = discord.File(f"./cogs/gacha_images/idols/{active_idol_image}", filename=active_idol_image)
             card.set_image(url=f"attachment://{active_idol_image}")
+            print("idol image set")
 
         ### FORMAT AND DISPLAY TITLES IF ANY ###
-        formatted_titles = ""
-        max_digits = len(str(max(titles)[0]))
-        for title in titles:
-            spaces = ""
-            num_digits = len(str(title[0]))
-            for i in range(max_digits - num_digits):
-                spaces += " " #figure space (numerical digits) U+2007
-            formatted_titles += "`" + spaces + f"{title[0]}` {title[1]}\n"
         if len(titles) > 0:
+            formatted_titles = ""
+            max_digits = len(str(max(titles)[0]))
+            for title in titles:
+                spaces = ""
+                num_digits = len(str(title[0]))
+                for i in range(max_digits - num_digits):
+                    spaces += " " #figure space (numerical digits) U+2007
+                formatted_titles += "`" + spaces + f"{title[0]}` {title[1]}\n"
             card.add_field(
                 name=f"Titles:",
                 value=formatted_titles,
                 inline=False)
+        print("titles set")
 
         ### FORMAT AND DISPLAY IDOLS IF ANY ###
-        party_list = ""
-        max_digits = len(str(max(idol_list)[0])) # max_digits=3, num_digits=1, spaces=2
-        for idol in idol_list:
-            spaces = ""
-            num_digits = len(str(idol[0]))
-            for i in range(max_digits - num_digits):
-                spaces += " " #figure space (numerical digits) U+2007
-            party_list += "`" + spaces + f"{idol[0]}` `{idol[3]}` {idol[1]}\n"
-        if (len(idol_list) == 0):
+        if (len(idol_list) > 0):
+            party_list = ""
+            max_digits = len(str(max(idol_list)[0])) # max_digits=3, num_digits=1, spaces=2
+            for idol in idol_list:
+                spaces = ""
+                num_digits = len(str(idol[0]))
+                for i in range(max_digits - num_digits):
+                    spaces += " " #figure space (numerical digits) U+2007
+                party_list += "`" + spaces + f"{idol[0]}` `{idol[3]}` {idol[1]}\n"
+        else:
             party_list = "Party is empty -- Use `!gacha` to catch an idol!"
         card.add_field(
             name=f"Top Party Members:",
             value=party_list,
             inline=False
         )
+        print("idols set")
 
         #print("Embed created!")
 
@@ -382,6 +387,7 @@ class Gacha(commands.Cog):
         elif (len(idol_list) == 0) and active_logo: # has logo but no idols
             await ctx.send(files=[uploaded_active_logo], embed=card)
         elif active_logo is None: # has idols but no logo
+            print("sending card with idol image")
             await ctx.send(files=[uploaded_active_idol_image], embed=card)
         else: # has both idols and logo
             await ctx.send(files=[uploaded_active_idol_image, uploaded_active_logo], embed=card)
