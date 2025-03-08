@@ -972,7 +972,7 @@ class Gacha(commands.Cog):
         ### INITIALIZE CARD ###
         card = discord.Embed(
             title="Idol Catcher Tutorial",
-            description="Alpha Test: 3/8/2025 - 3/16/2025\nWelcome to the Idol Catcher alpha, where you can roll and collect your favorite idols. Please note that your progress will not be saved after the alpha. Use `!gacha` to start playing.",
+            description="Alpha Test: 3/8/2025 - 3/14/2025\nWelcome to the Idol Catcher alpha, where you can roll and collect your favorite idols. Please note that your progress will not be saved after the alpha. Use `!gacha` to start playing.",
             color=discord.Color.blue())
         
         card.set_footer(text="Use !idolhelp for additional help and commands.")
