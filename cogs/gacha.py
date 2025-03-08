@@ -147,7 +147,7 @@ class Gacha(commands.Cog):
         if roll_logo is not None:
             uploaded_roll_logo = discord.File(f"./cogs/gacha_images/logos/{roll_logo}", filename=roll_logo)
 
-        card = discord.Embed(title=roll_name, description=roll_group_name, color=discord.Color.green())
+        card = discord.Embed(title=f"{roll_name}", description=roll_group_name, color=discord.Color.green())
         if roll_logo is not None:
             card.set_thumbnail(url=f"attachment://{roll_logo}")
         card.set_image(url=f"attachment://{roll_image}")
@@ -591,12 +591,13 @@ class Gacha(commands.Cog):
                         WHERE PartyPositions.player_id = :player_id""",
                         {'player_id': player_id})
         idols = cursor.fetchall()
+        print(idols)
 
-        ### ERROR MESSAGE IF PLAYER NOT FOUND ###
-        '''if titles is None:
-            await ctx.send(f"ERROR: Player <@{player_id}> not found. Use `!gacha` to start the game!")
+        ### ERROR MESSAGE IF NO IDOLS ###
+        if len(idols) == 0:
+            await ctx.send(f"Your party is empty. Use `!gacha` to catch some idols!")
             connection.close()
-            return'''
+            return
         
         ### SEND IDOLS LIST ###
         #view = ActiveTitleSelectMenu(player_id, titles)
@@ -606,8 +607,8 @@ class Gacha(commands.Cog):
         menu = IdolsListPages(formatter)
         await menu.start(ctx)
 
-        #connection.commit()
-        #connection.close()
+        connection.commit()
+        connection.close()
     
     ### !MOVEIDOL COMMAND: REORGANIZE PARTY ORDER ###
     @commands.command(aliases=["mi", "movei", "midol"])
