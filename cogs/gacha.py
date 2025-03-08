@@ -594,7 +594,8 @@ class Gacha(commands.Cog):
                         INNER JOIN Idols ON GroupMembers.idol_id = Idols.idol_id
                         INNER JOIN Groups ON GroupMembers.group_id = Groups.group_id
                         INNER JOIN PartyPositions ON PartyPositions.idol_id = GroupMembers.idol_id
-                        WHERE PartyPositions.player_id = :player_id""",
+                        WHERE PartyPositions.player_id = :player_id AND PartyPositions.idol_id IS NOT NULL
+                        ORDER BY PartyPositions.party_position ASC""",
                         {'player_id': player_id})
         idols = cursor.fetchall()
 
@@ -785,6 +786,22 @@ class Gacha(commands.Cog):
             
             ### CONFIRMATION MESSAGE ###
             await ctx.send(f"{idol_name} and {swap_name} have been swapped.")
+        
+        ### GET PARTY WITH NEW ORDER ###
+        cursor.execute("""SELECT Idols.idol_id, Idols.idol_name, Groups.group_name
+                        FROM GroupMembers
+                        INNER JOIN Idols ON GroupMembers.idol_id = Idols.idol_id
+                        INNER JOIN Groups ON GroupMembers.group_id = Groups.group_id
+                        INNER JOIN PartyPositions ON PartyPositions.idol_id = GroupMembers.idol_id
+                        WHERE PartyPositions.player_id = :player_id AND PartyPositions.idol_id IS NOT NULL
+                        ORDER BY PartyPositions.party_position ASC""",
+                        {'player_id': player_id})
+        idols = cursor.fetchall()
+        
+        ### SEND IDOLS LIST ###
+        formatter = IdolsListPagesFormatter(idols, per_page=10)
+        menu = IdolsListPages(formatter)
+        await menu.start(ctx)
 
         connection.commit()
         connection.close()
@@ -1987,7 +2004,7 @@ class TradeButtonMenu(discord.ui.View):
 
         ### MOVE USER1'S REMAINING IDOLS' PARTY POSITIONS UP BY 1 ###
         cursor.execute("""SELECT party_position, idol_id FROM PartyPositions
-                        WHERE (player_id = :user_id1 AND party_position > :empty_position AND idol_id NOT NULL)""",
+                        WHERE (player_id = :user_id1 AND party_position > :empty_position AND idol_id IS NOT NULL)""",
                         {'user_id1': self.user_id1, 'empty_position': empty_position})
         idols_to_move = cursor.fetchall()
         print(f"{self.user_name1}'s idols to move: {idols_to_move}")
@@ -2021,7 +2038,7 @@ class TradeButtonMenu(discord.ui.View):
 
         ### MOVE USER2'S REMAINING IDOLS' PARTY POSITIONS UP BY 1 ###
         cursor.execute("""SELECT party_position, idol_id FROM PartyPositions
-                        WHERE (player_id = :user_id2 AND party_position > :empty_position AND idol_id NOT NULL)""",
+                        WHERE (player_id = :user_id2 AND party_position > :empty_position AND idol_id IS NOT NULL)""",
                         {'user_id2': self.user_id2, 'empty_position': empty_position})
         idols_to_move = cursor.fetchall()
         print(f"{self.user_name2}'s idols to move: {idols_to_move}")
