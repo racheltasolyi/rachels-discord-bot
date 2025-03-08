@@ -18,9 +18,7 @@ class Gacha(commands.Cog):
     @commands.command(aliases=["g"])
     async def gacha(self, ctx, arg: int = None):
 
-        #print("!gacha command called!")
         roller_id = ctx.author.id
-        #print(f"roller_id = {roller_id}")
 
         ### SPECIFY HIGHEST IDOL ID ###
         len_idols = 244 # about 4% chance to roll a specific idol with each 10 pull
@@ -41,7 +39,7 @@ class Gacha(commands.Cog):
             #roll_number = 29
             roll_number = random.randrange(len_idols + 1) # randrange() excludes last number
             
-        print(roll_number)
+        print(f"!gacha roll_number: {roll_number}")
 
         ### ERROR MESSAGE IF INVALID IDOL ID ###
         if (roll_number < 0 or roll_number > len_idols):
@@ -51,13 +49,11 @@ class Gacha(commands.Cog):
         ### FETCH PLAYER ###
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
-        #print("connection made")
 
         cursor.execute("""SELECT rolls_left, max_rolls, last_roll_timestamp FROM Players
                           WHERE player_id = :roller_id""",
                         {'roller_id': roller_id})
         player = cursor.fetchone()
-        #print(player)
         
         ### IF PLAYER IS NEW, ADD NEW PLAYER TO DATABASE ###
         if player is None:
@@ -66,10 +62,8 @@ class Gacha(commands.Cog):
                             WHERE player_id = :roller_id""",
                             {'roller_id': roller_id})
             player = cursor.fetchone()
-            #print(player)
         
         rolls_left, max_rolls, last_roll_timestamp = player
-        print(last_roll_timestamp)
         
         ### UPDATE AND GET NEW TIMESTAMP OF PLAYER'S LAST ROLL ###
         cursor.execute("""UPDATE Players
@@ -80,7 +74,7 @@ class Gacha(commands.Cog):
                             WHERE player_id = :roller_id""",
                             {'roller_id': roller_id})
         current_roll_timestamp = cursor.fetchone()[0]
-        print(current_roll_timestamp)
+        print(f"!gacha current timestamp for roll {roll_number}: {current_roll_timestamp}")
 
         ### IF LAST ROLL WAS BEFORE THE HOURLY RESET, RESET PLAYER'S ROLLS_LEFT TO MAX ###
         last_dt = datetime.strptime(last_roll_timestamp, "%Y-%m-%d %H:%M:%S")
@@ -91,7 +85,7 @@ class Gacha(commands.Cog):
             reset = True
         
         if reset:
-            print("Resetting rolls")
+            print(f"!gacha: Resetting rolls for {ctx.author.name}")
             cursor.execute("""UPDATE Players
                           SET rolls_left = :max_rolls
                           WHERE player_id = :roller_id""",
@@ -99,6 +93,19 @@ class Gacha(commands.Cog):
             rolls_left = max_rolls
         
         ### IF NO ROLLS LEFT, SEND HOW MANY MINUTES UNTIL NEXT RESET ###
+        if rolls_left <= 0:
+            minutes_left = 60 - datetime.now().minute
+            await ctx.send(f"No rolls left! Time until next reset: {minutes_left} minutes")
+            connection.close()
+            return
+        
+        ### IF PLAYER HAS ROLLS, DECREMENT 1 ROLL ###
+        else:
+            rolls_left -= 1
+            cursor.execute("""UPDATE Players
+                          SET rolls_left = :rolls_left
+                          WHERE player_id = :roller_id""",
+                        {'rolls_left': rolls_left, 'roller_id': roller_id})
 
         ### FETCH THE ROLLED IDOL AND THEIR GROUP ###
         cursor.execute("""SELECT Idols.idol_name, Idols.idol_image, GroupMembers.group_id, Groups.group_name, Groups.group_logo
@@ -108,7 +115,6 @@ class Gacha(commands.Cog):
                         WHERE GroupMembers.idol_id = :roll_number""",
                         {'roll_number': roll_number})
         roll = cursor.fetchone()
-        #print(roll)
         if roll is None:
             await ctx.send("ERROR: The rolled idol does not exist.")
             connection.close()
@@ -130,7 +136,6 @@ class Gacha(commands.Cog):
                         WHERE PartyPositions.idol_id = :roll_number""",
                         {'roll_number': roll_number})
         owner_id = cursor.fetchone()
-        #print(owner_id)
         if owner_id is None:
             roll_claimed = False
         else:
@@ -141,14 +146,12 @@ class Gacha(commands.Cog):
         uploaded_roll_image = discord.File(f"./cogs/gacha_images/idols/{roll_image}", filename=roll_image)
         if roll_logo is not None:
             uploaded_roll_logo = discord.File(f"./cogs/gacha_images/logos/{roll_logo}", filename=roll_logo)
-        #print("Images uploaded!")
 
         card = discord.Embed(title=roll_name, description=roll_group_name, color=discord.Color.green())
         if roll_logo is not None:
             card.set_thumbnail(url=f"attachment://{roll_logo}")
         card.set_image(url=f"attachment://{roll_image}")
-        card.set_footer(text=f"Rolled by {ctx.author.name}", icon_url=ctx.author.avatar)
-        #print("Embed created!")
+        card.set_footer(text=f"Rolled by {ctx.author.name} 🎲 Rolls remaining: {rolls_left}", icon_url=ctx.author.avatar)
 
         ### DISPLAY IDOL CARD WITH CATCH BUTTON, DEPENDING ON WHETHER IT IS CLAIMED OR NOT ###
         if roll_claimed:
@@ -205,7 +208,6 @@ class Gacha(commands.Cog):
                             WHERE Idols.idol_id = :idol_id""",
                             {'idol_id': idol_id})
             idol = cursor.fetchone()
-            #print(idol)
 
             ### ERROR MESSAGE IF IDOL DOES NOT EXIST ###
             if idol is None:
@@ -267,12 +269,11 @@ class Gacha(commands.Cog):
             player_id = member.id
             player_name = member.name
             avatar = member.avatar
-        print(player_id)
+        print(f"!profile called for: {player_name}")
 
         ### FETCH PLAYER FROM DB ###
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
-        #print("connection made")
 
         cursor.execute("""SELECT * FROM Players
                           WHERE player_id = :player_id""",
@@ -286,7 +287,6 @@ class Gacha(commands.Cog):
                             WHERE player_id = :roller_id""",
                             {'roller_id': player_id})
             player = cursor.fetchone()
-        print(player)
 
         ### FETCH ALL OF PLAYER'S IDOLS ###
         cursor.execute("""SELECT PartyPositions.idol_id, Idols.idol_name, Idols.idol_image, Groups.group_name
@@ -298,7 +298,7 @@ class Gacha(commands.Cog):
                         LIMIT 5""",
                         {'player_id': player_id})
         idol_list = cursor.fetchall()
-        print(idol_list)
+        print(f"!profile idol_list for {player_name}: {idol_list}")
 
         ### FETCH PLAYER'S ACTIVE TITLE & LOGO ###
         cursor.execute("""SELECT TitleList.title_name, Groups.group_logo
@@ -308,7 +308,6 @@ class Gacha(commands.Cog):
                         WHERE (CompletedTitles.player_id = :player_id AND CompletedTitles.position = 1)""",
                         {'player_id': player_id})
         active_title = cursor.fetchone()
-        print(active_title)
         if active_title is None:
             active_title_name = "Trainee"
             active_logo = None
@@ -322,7 +321,6 @@ class Gacha(commands.Cog):
                         WHERE (CompletedTitles.player_id = :player_id AND CompletedTitles.position > 1)""",
                         {'player_id': player_id})
         titles = cursor.fetchall()
-        print(titles)
 
         ### BUILD PLAYER PROFILE CARD ###
         card = discord.Embed(
@@ -335,14 +333,12 @@ class Gacha(commands.Cog):
             card.set_thumbnail(url=f"attachment://{active_logo}")
         else:
             card.set_thumbnail(url=avatar)
-        print("logo set")
         
         ### FETCH & SET PLAYER'S ACTIVE IDOL IMAGE ###
         if (len(idol_list) > 0):
             active_idol_image = idol_list[0][2]
             uploaded_active_idol_image = discord.File(f"./cogs/gacha_images/idols/{active_idol_image}", filename=active_idol_image)
             card.set_image(url=f"attachment://{active_idol_image}")
-            print("idol image set")
 
         ### FORMAT AND DISPLAY TITLES IF ANY ###
         if len(titles) > 0:
@@ -358,7 +354,6 @@ class Gacha(commands.Cog):
                 name=f"Titles:",
                 value=formatted_titles,
                 inline=False)
-        print("titles set")
 
         ### FORMAT AND DISPLAY IDOLS IF ANY ###
         if (len(idol_list) > 0):
@@ -377,9 +372,6 @@ class Gacha(commands.Cog):
             value=party_list,
             inline=False
         )
-        print("idols set")
-
-        #print("Embed created!")
 
         ### DISPLAY PLAYER PROFILE CARD ###
         if (len(idol_list) == 0) and active_logo is None: # no idols and no logo
@@ -387,7 +379,6 @@ class Gacha(commands.Cog):
         elif (len(idol_list) == 0) and active_logo: # has logo but no idols
             await ctx.send(files=[uploaded_active_logo], embed=card)
         elif active_logo is None: # has idols but no logo
-            print("sending card with idol image")
             await ctx.send(files=[uploaded_active_idol_image], embed=card)
         else: # has both idols and logo
             await ctx.send(files=[uploaded_active_idol_image, uploaded_active_logo], embed=card)
@@ -401,7 +392,7 @@ class Gacha(commands.Cog):
 
         ### GET IDOL ID ###
         idol_id = arg
-        print(idol_id)
+        print(f"!view called for: {idol_id}")
 
         ### FETCH THE ROLLED IDOL, THEIR GROUP, AND OWNER ###
         connection = sqlite3.connect("./cogs/idol_gacha.db")
@@ -433,7 +424,6 @@ class Gacha(commands.Cog):
             card.set_thumbnail(url=f"attachment://{group_logo}")
         card.set_image(url=f"attachment://{idol_image}")
         card.set_footer(text=f"Requested by {ctx.author.name}", icon_url=ctx.author.avatar)
-        #print("Embed created!")
 
         ### DISPLAY IDOL CARD ###
         owner_name = await ctx.bot.fetch_user(owner_id)
@@ -556,7 +546,7 @@ class Gacha(commands.Cog):
         connection.commit()
         connection.close()
 
-    ### !RELEASE COMMAND: RELEASE SPECIFIED IDOL ###
+    ### !ACTIVETITLE COMMAND: CHANGE ACTIVE TITLE ###
     @commands.command(aliases=["picktitle", "title", "at"])
     async def activetitle(self, ctx):
         
@@ -571,7 +561,6 @@ class Gacha(commands.Cog):
                         ORDER BY CompletedTitles.position""",
                         {'player_id': player_id})
         titles = cursor.fetchall()
-        #print(titles)
 
         ### ERROR MESSAGE IF NO TITLES FOUND ###
         if titles is None:
@@ -602,7 +591,6 @@ class Gacha(commands.Cog):
                         WHERE PartyPositions.player_id = :player_id""",
                         {'player_id': player_id})
         idols = cursor.fetchall()
-        #print(idols)
 
         ### ERROR MESSAGE IF PLAYER NOT FOUND ###
         '''if titles is None:
@@ -652,7 +640,7 @@ class Gacha(commands.Cog):
                         WHERE (PartyPositions.idol_id = :idol_id AND PartyPositions.player_id = :player_id)""",
                         {'idol_id': idol_id, 'player_id': player_id})
         idol = cursor.fetchone()
-        print(idol)
+        print(f"!moveidol called on idol {idol_id}")
 
         ### ERROR MESSAGE IF IDOL NOT IN PLAYER'S PARTY ###
         if idol is None:
@@ -661,13 +649,10 @@ class Gacha(commands.Cog):
             return
         
         idol_position, idol_name = idol
-        print(idol_position)
-        #print(args[1])
 
         ### MOVE IDOL POSITION DOWN ###
         if args[1] == "down" or args[1] == "d":
             if len(args) == 3:
-                #print(args[2])
                 ### FAIL IF ARG[2] IS NOT INT ###
                 try:
                     positions = int(args[2])
@@ -716,7 +701,6 @@ class Gacha(commands.Cog):
         ### MOVE IDOL POSITION UP ###
         elif args[1] == "up" or args[1] == "u":
             if len(args) == 3:
-                #print(args[2])
                 ### FAIL IF ARG[2] IS NOT INT ###
                 try:
                     positions = int(args[2])
@@ -740,7 +724,6 @@ class Gacha(commands.Cog):
                             ORDER BY party_position DESC""",
                             {'player_id': player_id, 'idol_position': idol_position, 'final_position': final_position})
             idols_to_move = cursor.fetchall()
-            print(idols_to_move)
 
             for party_position, moving_idol_id in idols_to_move:
                 new_position = party_position + 1
@@ -775,7 +758,6 @@ class Gacha(commands.Cog):
                             WHERE (PartyPositions.player_id = :player_id AND PartyPositions.idol_id = :swap_id)""",
                             {'player_id': player_id, 'swap_id': swap_id})
             swap_idol = cursor.fetchone()
-            print(swap_idol)
 
             ### ERROR MESSAGE IF IDOL NOT IN PLAYER'S PARTY ###
             if swap_idol is None:
@@ -832,7 +814,7 @@ class Gacha(commands.Cog):
                         WHERE (CompletedTitles.title_id = :title_id AND CompletedTitles.player_id = :player_id)""",
                         {'title_id': title_id, 'player_id': player_id})
         title = cursor.fetchone()
-        print(title)
+        print(f"!movetitle called on {title}")
 
         ### ERROR MESSAGE IF PLAYER DOES NOT HAVE TITLE ###
         if title is None:
@@ -841,8 +823,6 @@ class Gacha(commands.Cog):
             return
         
         title_position, title_name = title
-        #print(title_position)
-        #print(args[1])
 
         ### ERROR IF ACTIVE TITLE ###
         if title_position == 1:
@@ -853,7 +833,6 @@ class Gacha(commands.Cog):
         ### MOVE TITLE POSITION DOWN ###
         if args[1] == "down" or args[1] == "d":
             if len(args) == 3:
-                #print(args[2])
                 ### FAIL IF ARG[2] IS NOT INT ###
                 try:
                     positions = int(args[2])
@@ -904,7 +883,6 @@ class Gacha(commands.Cog):
         ### MOVE TITLE POSITION UP ###
         elif args[1] == "up" or args[1] == "u":
             if len(args) == 3:
-                #print(args[2])
                 ### FAIL IF ARG[2] IS NOT INT ###
                 try:
                     positions = int(args[2])
@@ -928,7 +906,6 @@ class Gacha(commands.Cog):
                             ORDER BY position DESC""",
                             {'player_id': player_id, 'title_position': title_position, 'final_position': final_position})
             titles_to_move = cursor.fetchall()
-            #print(titles_to_move)
 
             for position, moving_title_id in titles_to_move:
                 new_position = position + 1
@@ -956,7 +933,6 @@ class Gacha(commands.Cog):
                 connection.close()
                 return
             
-            #print("swap " + str(title_id) + " and " + str(swap_id))
             ### CHECK IF PLAYER HAS 2ND TITLE AND FETCH POSITION ###
             cursor.execute("""SELECT CompletedTitles.position, TitleList.title_name
                             FROM CompletedTitles
@@ -964,7 +940,6 @@ class Gacha(commands.Cog):
                             WHERE (CompletedTitles.player_id = :player_id AND CompletedTitles.title_id = :swap_id)""",
                             {'player_id': player_id, 'swap_id': swap_id})
             swap_title = cursor.fetchone()
-            #print(swap_title)
 
             ### ERROR MESSAGE IF PLAYER DOES NOT HAVE TITLE ###
             if swap_title is None:
@@ -1247,9 +1222,6 @@ class Gacha(commands.Cog):
         ### CHECK IF USER IS ADMIN ###
         with open("./admin.txt") as file:
             adminid = int(file.read())
-            #print("adminid =", repr(adminid), type(adminid))
-            #print("ctx.author.id =", repr(ctx.author.id), type(ctx.author.id))
-            #print(ctx.author.id == adminid)
 
         if (ctx.author.id == adminid):
 
@@ -1369,10 +1341,6 @@ class Gacha(commands.Cog):
                 new_group_logo = new_group[2]
                 new_group_id = new_group[0]
                 new_group_title_id = new_group[3]
-                #print(f"new_group_name: {new_group_name}")
-                #print(f"new_group_logo: {new_group_logo}")
-                #print(f"new_group_id: {new_group_id}")
-                #print(f"new_group_title_id: {new_group_title_id}")
                 if new_group_title_id:
                     cursor.execute("""SELECT title_name FROM TitleList
                                     WHERE title_id = :new_group_title_id""",
@@ -1380,7 +1348,6 @@ class Gacha(commands.Cog):
                     new_group_title = cursor.fetchone()[0]
                 else:
                     new_group_title = None
-                #print(f"new_group_title: {new_group_title}")
 
                 ### BUILD NEW GROUP CONFIRMATION CARD ###
                 if new_group_logo and not os.path.exists(f"./cogs/gacha_images/logos/{new_group_logo}"):
@@ -1389,7 +1356,6 @@ class Gacha(commands.Cog):
                     return
                 uploaded_new_group_logo = discord.File(f"./cogs/gacha_images/logos/{new_group_logo}", filename=new_group_logo)
                 
-                #print("creating embed")
                 card = discord.Embed(title=new_group_name, description="has been added to Groups.", color=discord.Color.green())
                 #await ctx.send(embed=card)
                 card.set_footer(text=f"New group added by {ctx.author.name}", icon_url=ctx.author.avatar)
@@ -1515,9 +1481,6 @@ class Gacha(commands.Cog):
         ### CHECK IF USER IS ADMIN ###
         with open("./admin.txt") as file:
             adminid = int(file.read())
-            #print("adminid =", repr(adminid), type(adminid))
-            #print("ctx.author.id =", repr(ctx.author.id), type(ctx.author.id))
-            #print(ctx.author.id == adminid)
 
         if (ctx.author.id == adminid):
 
@@ -1569,9 +1532,6 @@ class Gacha(commands.Cog):
         ### CHECK IF USER IS ADMIN ###
         with open("./admin.txt") as file:
             adminid = int(file.read())
-            #print("adminid =", repr(adminid), type(adminid))
-            #print("ctx.author.id =", repr(ctx.author.id), type(ctx.author.id))
-            #print(ctx.author.id == adminid)
 
         if (ctx.author.id == adminid):
 
@@ -1620,9 +1580,6 @@ class Gacha(commands.Cog):
         ### CHECK IF USER IS ADMIN ###
         with open("./admin.txt") as file:
             adminid = int(file.read())
-            #print("adminid =", repr(adminid), type(adminid))
-            #print("ctx.author.id =", repr(ctx.author.id), type(ctx.author.id))
-            #print(ctx.author.id == adminid)
 
         if (ctx.author.id == adminid):
 
@@ -1710,7 +1667,6 @@ class GachaButtonMenu(discord.ui.View):
 
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
-        #print("connection made")
 
         ### FETCH IDOL NAME AND CHECK IF CAUGHT ###
         cursor.execute("""SELECT idol_name FROM Idols
@@ -1739,7 +1695,6 @@ class GachaButtonMenu(discord.ui.View):
                 ### IF PARTY IS NOT FULL, ADD IDOL ID TO CORRECT PARTY POSITION ##
                 else:
                     party_position = party_position[0]
-                    print(party_position)
                     cursor.execute("""UPDATE PartyPositions
                                     SET idol_id = :roll_number
                                     WHERE (player_id = :roller_id AND party_position = :party_position)""",
@@ -1751,7 +1706,6 @@ class GachaButtonMenu(discord.ui.View):
                         button.disabled = True
                         button.label = f"{roll_name} has been caught!"
                     await self.message.edit(view=self)
-                    #print(roll)
 
             ### IF IDOL IS ALREADY CAUGHT, SEND ERROR AND DISABLE BUTTON ###
             else:
@@ -1819,7 +1773,6 @@ class ReleaseButtonMenu(discord.ui.View):
                             WHERE idol_id = :idol_id""",
                             {'idol_id': self.idol_id})
             empty_position = cursor.fetchone()[0]
-            print(empty_position)
 
             cursor.execute("""UPDATE PartyPositions
                             SET idol_id = NULL
@@ -2151,7 +2104,6 @@ class ActiveTitleSelectMenu(discord.ui.View):
                                 ORDER BY position DESC""",
                                 {'caller_id': self.caller_id, 'new_active_title_position': new_active_title_position})
                 titles_to_move = cursor.fetchall()
-                print(titles_to_move)
 
                 for position, moving_title_id in titles_to_move:
                     new_position = position + 1
@@ -2159,14 +2111,12 @@ class ActiveTitleSelectMenu(discord.ui.View):
                                     SET title_id = :moving_title_id
                                     WHERE (player_id = :caller_id AND position = :new_position)""",
                                     {'caller_id': self.caller_id, 'moving_title_id': moving_title_id, 'new_position': new_position})
-                print("other titles shifted down")
 
                 ### PLACE NEW ACTIVE TITLE IN POSITION 1 ###
                 cursor.execute("""UPDATE CompletedTitles
                                 SET title_id = :new_active_title_id
                                 WHERE (player_id = :caller_id AND position = 1)""",
                                 {'caller_id': self.caller_id, 'new_active_title_id': new_active_title_id})
-                print("active title updated")
                 
                 ### GET NEW ACTIVE TITLE NAME ###
                 cursor.execute("""SELECT title_name
@@ -2174,7 +2124,6 @@ class ActiveTitleSelectMenu(discord.ui.View):
                                 WHERE title_id == :new_active_title_id""",
                                 {'new_active_title_id': new_active_title_id})
                 new_active_title = cursor.fetchone()[0]
-                print(new_active_title)
 
                 connection.commit()
                 connection.close()
@@ -2238,8 +2187,6 @@ class IdolsListPages(discord.ui.View, menus.MenuPages):
 
     async def interaction_check(self, interaction):
         """Only allow the author that invoke the command to be able to use the interaction"""
-        print(interaction.user)
-        print(self.ctx.author)
         return interaction.user == self.ctx.author
 
     @discord.ui.button(emoji='⏮️', style=discord.ButtonStyle.blurple)
