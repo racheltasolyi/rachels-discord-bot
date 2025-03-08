@@ -640,7 +640,7 @@ class Gacha(commands.Cog):
                         WHERE (PartyPositions.idol_id = :idol_id AND PartyPositions.player_id = :player_id)""",
                         {'idol_id': idol_id, 'player_id': player_id})
         idol = cursor.fetchone()
-        print(idol)
+        print(f"!moveidol called on idol {idol_id}")
 
         ### ERROR MESSAGE IF IDOL NOT IN PLAYER'S PARTY ###
         if idol is None:
@@ -649,13 +649,10 @@ class Gacha(commands.Cog):
             return
         
         idol_position, idol_name = idol
-        print(idol_position)
-        #print(args[1])
 
         ### MOVE IDOL POSITION DOWN ###
         if args[1] == "down" or args[1] == "d":
             if len(args) == 3:
-                #print(args[2])
                 ### FAIL IF ARG[2] IS NOT INT ###
                 try:
                     positions = int(args[2])
@@ -704,7 +701,6 @@ class Gacha(commands.Cog):
         ### MOVE IDOL POSITION UP ###
         elif args[1] == "up" or args[1] == "u":
             if len(args) == 3:
-                #print(args[2])
                 ### FAIL IF ARG[2] IS NOT INT ###
                 try:
                     positions = int(args[2])
@@ -728,7 +724,6 @@ class Gacha(commands.Cog):
                             ORDER BY party_position DESC""",
                             {'player_id': player_id, 'idol_position': idol_position, 'final_position': final_position})
             idols_to_move = cursor.fetchall()
-            print(idols_to_move)
 
             for party_position, moving_idol_id in idols_to_move:
                 new_position = party_position + 1
@@ -763,7 +758,6 @@ class Gacha(commands.Cog):
                             WHERE (PartyPositions.player_id = :player_id AND PartyPositions.idol_id = :swap_id)""",
                             {'player_id': player_id, 'swap_id': swap_id})
             swap_idol = cursor.fetchone()
-            print(swap_idol)
 
             ### ERROR MESSAGE IF IDOL NOT IN PLAYER'S PARTY ###
             if swap_idol is None:
@@ -820,7 +814,7 @@ class Gacha(commands.Cog):
                         WHERE (CompletedTitles.title_id = :title_id AND CompletedTitles.player_id = :player_id)""",
                         {'title_id': title_id, 'player_id': player_id})
         title = cursor.fetchone()
-        print(title)
+        print(f"!movetitle called on {title}")
 
         ### ERROR MESSAGE IF PLAYER DOES NOT HAVE TITLE ###
         if title is None:
@@ -829,8 +823,6 @@ class Gacha(commands.Cog):
             return
         
         title_position, title_name = title
-        #print(title_position)
-        #print(args[1])
 
         ### ERROR IF ACTIVE TITLE ###
         if title_position == 1:
@@ -841,7 +833,6 @@ class Gacha(commands.Cog):
         ### MOVE TITLE POSITION DOWN ###
         if args[1] == "down" or args[1] == "d":
             if len(args) == 3:
-                #print(args[2])
                 ### FAIL IF ARG[2] IS NOT INT ###
                 try:
                     positions = int(args[2])
@@ -892,7 +883,6 @@ class Gacha(commands.Cog):
         ### MOVE TITLE POSITION UP ###
         elif args[1] == "up" or args[1] == "u":
             if len(args) == 3:
-                #print(args[2])
                 ### FAIL IF ARG[2] IS NOT INT ###
                 try:
                     positions = int(args[2])
@@ -916,7 +906,6 @@ class Gacha(commands.Cog):
                             ORDER BY position DESC""",
                             {'player_id': player_id, 'title_position': title_position, 'final_position': final_position})
             titles_to_move = cursor.fetchall()
-            #print(titles_to_move)
 
             for position, moving_title_id in titles_to_move:
                 new_position = position + 1
@@ -944,7 +933,6 @@ class Gacha(commands.Cog):
                 connection.close()
                 return
             
-            #print("swap " + str(title_id) + " and " + str(swap_id))
             ### CHECK IF PLAYER HAS 2ND TITLE AND FETCH POSITION ###
             cursor.execute("""SELECT CompletedTitles.position, TitleList.title_name
                             FROM CompletedTitles
@@ -952,7 +940,6 @@ class Gacha(commands.Cog):
                             WHERE (CompletedTitles.player_id = :player_id AND CompletedTitles.title_id = :swap_id)""",
                             {'player_id': player_id, 'swap_id': swap_id})
             swap_title = cursor.fetchone()
-            #print(swap_title)
 
             ### ERROR MESSAGE IF PLAYER DOES NOT HAVE TITLE ###
             if swap_title is None:
@@ -1235,9 +1222,6 @@ class Gacha(commands.Cog):
         ### CHECK IF USER IS ADMIN ###
         with open("./admin.txt") as file:
             adminid = int(file.read())
-            #print("adminid =", repr(adminid), type(adminid))
-            #print("ctx.author.id =", repr(ctx.author.id), type(ctx.author.id))
-            #print(ctx.author.id == adminid)
 
         if (ctx.author.id == adminid):
 
@@ -1357,10 +1341,6 @@ class Gacha(commands.Cog):
                 new_group_logo = new_group[2]
                 new_group_id = new_group[0]
                 new_group_title_id = new_group[3]
-                #print(f"new_group_name: {new_group_name}")
-                #print(f"new_group_logo: {new_group_logo}")
-                #print(f"new_group_id: {new_group_id}")
-                #print(f"new_group_title_id: {new_group_title_id}")
                 if new_group_title_id:
                     cursor.execute("""SELECT title_name FROM TitleList
                                     WHERE title_id = :new_group_title_id""",
@@ -1368,7 +1348,6 @@ class Gacha(commands.Cog):
                     new_group_title = cursor.fetchone()[0]
                 else:
                     new_group_title = None
-                #print(f"new_group_title: {new_group_title}")
 
                 ### BUILD NEW GROUP CONFIRMATION CARD ###
                 if new_group_logo and not os.path.exists(f"./cogs/gacha_images/logos/{new_group_logo}"):
@@ -1377,7 +1356,6 @@ class Gacha(commands.Cog):
                     return
                 uploaded_new_group_logo = discord.File(f"./cogs/gacha_images/logos/{new_group_logo}", filename=new_group_logo)
                 
-                #print("creating embed")
                 card = discord.Embed(title=new_group_name, description="has been added to Groups.", color=discord.Color.green())
                 #await ctx.send(embed=card)
                 card.set_footer(text=f"New group added by {ctx.author.name}", icon_url=ctx.author.avatar)
@@ -1503,9 +1481,6 @@ class Gacha(commands.Cog):
         ### CHECK IF USER IS ADMIN ###
         with open("./admin.txt") as file:
             adminid = int(file.read())
-            #print("adminid =", repr(adminid), type(adminid))
-            #print("ctx.author.id =", repr(ctx.author.id), type(ctx.author.id))
-            #print(ctx.author.id == adminid)
 
         if (ctx.author.id == adminid):
 
@@ -1557,9 +1532,6 @@ class Gacha(commands.Cog):
         ### CHECK IF USER IS ADMIN ###
         with open("./admin.txt") as file:
             adminid = int(file.read())
-            #print("adminid =", repr(adminid), type(adminid))
-            #print("ctx.author.id =", repr(ctx.author.id), type(ctx.author.id))
-            #print(ctx.author.id == adminid)
 
         if (ctx.author.id == adminid):
 
@@ -1608,9 +1580,6 @@ class Gacha(commands.Cog):
         ### CHECK IF USER IS ADMIN ###
         with open("./admin.txt") as file:
             adminid = int(file.read())
-            #print("adminid =", repr(adminid), type(adminid))
-            #print("ctx.author.id =", repr(ctx.author.id), type(ctx.author.id))
-            #print(ctx.author.id == adminid)
 
         if (ctx.author.id == adminid):
 
@@ -1698,7 +1667,6 @@ class GachaButtonMenu(discord.ui.View):
 
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
-        #print("connection made")
 
         ### FETCH IDOL NAME AND CHECK IF CAUGHT ###
         cursor.execute("""SELECT idol_name FROM Idols
@@ -1727,7 +1695,6 @@ class GachaButtonMenu(discord.ui.View):
                 ### IF PARTY IS NOT FULL, ADD IDOL ID TO CORRECT PARTY POSITION ##
                 else:
                     party_position = party_position[0]
-                    print(party_position)
                     cursor.execute("""UPDATE PartyPositions
                                     SET idol_id = :roll_number
                                     WHERE (player_id = :roller_id AND party_position = :party_position)""",
@@ -1739,7 +1706,6 @@ class GachaButtonMenu(discord.ui.View):
                         button.disabled = True
                         button.label = f"{roll_name} has been caught!"
                     await self.message.edit(view=self)
-                    #print(roll)
 
             ### IF IDOL IS ALREADY CAUGHT, SEND ERROR AND DISABLE BUTTON ###
             else:
@@ -1807,7 +1773,6 @@ class ReleaseButtonMenu(discord.ui.View):
                             WHERE idol_id = :idol_id""",
                             {'idol_id': self.idol_id})
             empty_position = cursor.fetchone()[0]
-            print(empty_position)
 
             cursor.execute("""UPDATE PartyPositions
                             SET idol_id = NULL
@@ -2139,7 +2104,6 @@ class ActiveTitleSelectMenu(discord.ui.View):
                                 ORDER BY position DESC""",
                                 {'caller_id': self.caller_id, 'new_active_title_position': new_active_title_position})
                 titles_to_move = cursor.fetchall()
-                print(titles_to_move)
 
                 for position, moving_title_id in titles_to_move:
                     new_position = position + 1
@@ -2147,14 +2111,12 @@ class ActiveTitleSelectMenu(discord.ui.View):
                                     SET title_id = :moving_title_id
                                     WHERE (player_id = :caller_id AND position = :new_position)""",
                                     {'caller_id': self.caller_id, 'moving_title_id': moving_title_id, 'new_position': new_position})
-                print("other titles shifted down")
 
                 ### PLACE NEW ACTIVE TITLE IN POSITION 1 ###
                 cursor.execute("""UPDATE CompletedTitles
                                 SET title_id = :new_active_title_id
                                 WHERE (player_id = :caller_id AND position = 1)""",
                                 {'caller_id': self.caller_id, 'new_active_title_id': new_active_title_id})
-                print("active title updated")
                 
                 ### GET NEW ACTIVE TITLE NAME ###
                 cursor.execute("""SELECT title_name
@@ -2162,7 +2124,6 @@ class ActiveTitleSelectMenu(discord.ui.View):
                                 WHERE title_id == :new_active_title_id""",
                                 {'new_active_title_id': new_active_title_id})
                 new_active_title = cursor.fetchone()[0]
-                print(new_active_title)
 
                 connection.commit()
                 connection.close()
@@ -2226,8 +2187,6 @@ class IdolsListPages(discord.ui.View, menus.MenuPages):
 
     async def interaction_check(self, interaction):
         """Only allow the author that invoke the command to be able to use the interaction"""
-        print(interaction.user)
-        print(self.ctx.author)
         return interaction.user == self.ctx.author
 
     @discord.ui.button(emoji='⏮️', style=discord.ButtonStyle.blurple)
