@@ -57,33 +57,37 @@ class Gacha(commands.Cog):
         
         ### IF PLAYER IS NEW, ADD NEW PLAYER TO DATABASE ###
         if player is None:
-            self.createplayer(ctx, roller_id, cursor)
+            await self.createplayer(ctx, roller_id, cursor, connection)
             cursor.execute("""SELECT rolls_left, max_rolls, last_roll_timestamp FROM Players
                             WHERE player_id = :roller_id""",
                             {'roller_id': roller_id})
             player = cursor.fetchone()
-        
         rolls_left, max_rolls, last_roll_timestamp = player
+        print(player)
         
         ### UPDATE AND GET NEW TIMESTAMP OF PLAYER'S LAST ROLL ###
         cursor.execute("""UPDATE Players
                           SET last_roll_timestamp = DATETIME('now', 'localtime')
                           WHERE player_id = :roller_id""",
                         {'roller_id': roller_id})
+        connection.commit()
         cursor.execute("""SELECT last_roll_timestamp FROM Players
                             WHERE player_id = :roller_id""",
                             {'roller_id': roller_id})
         current_roll_timestamp = cursor.fetchone()[0]
-        print(f"!gacha current timestamp for roll {roll_number}: {current_roll_timestamp}")
+        print(current_roll_timestamp)
 
         ### IF LAST ROLL WAS BEFORE THE HOURLY RESET, RESET PLAYER'S ROLLS_LEFT TO MAX ###
         last_dt = datetime.strptime(last_roll_timestamp, "%Y-%m-%d %H:%M:%S")
         current_dt = datetime.strptime(current_roll_timestamp, "%Y-%m-%d %H:%M:%S")
+        current_roll_timestamp = current_roll_timestamp[0]
         if (last_dt.date() == current_dt.date() and last_dt.hour == current_dt.hour):
             reset = False
         else:
             reset = True
-        
+        print(f"!gacha current timestamp for roll {roll_number}: {current_roll_timestamp}")
+        print(f"reset? {reset}")
+
         if reset:
             print(f"!gacha: Resetting rolls for {ctx.author.name}")
             cursor.execute("""UPDATE Players
@@ -106,6 +110,7 @@ class Gacha(commands.Cog):
                           SET rolls_left = :rolls_left
                           WHERE player_id = :roller_id""",
                         {'rolls_left': rolls_left, 'roller_id': roller_id})
+            print("rolls decremented")
 
         ### FETCH THE ROLLED IDOL AND THEIR GROUP ###
         cursor.execute("""SELECT Idols.idol_name, Idols.idol_image, GroupMembers.group_id, Groups.group_name, Groups.group_logo
@@ -122,6 +127,7 @@ class Gacha(commands.Cog):
         
         ### GET IDOL'S INFORMATION ###
         roll_name, roll_image, roll_group_id, roll_group_name, roll_logo = roll
+        print(roll)
 
         ### ERROR IF GROUP INFORMATION CAN NOT BE FOUND ###
         if roll_group_id is None:
@@ -147,7 +153,7 @@ class Gacha(commands.Cog):
         if roll_logo is not None:
             uploaded_roll_logo = discord.File(f"./cogs/gacha_images/logos/{roll_logo}", filename=roll_logo)
 
-        card = discord.Embed(title=f"{roll_name}", description=roll_group_name, color=discord.Color.green())
+        card = discord.Embed(title=f"{roll_name} `{roll_group_name}`", description=f"Idol ID: {roll_number}", color=discord.Color.green())
         if roll_logo is not None:
             card.set_thumbnail(url=f"attachment://{roll_logo}")
         card.set_image(url=f"attachment://{roll_image}")
@@ -234,7 +240,7 @@ class Gacha(commands.Cog):
                     uploaded_group_logo = discord.File(f"./cogs/gacha_images/logos/{group_logo}", filename=group_logo)
 
                 ### BUILD CARD ###
-                card = discord.Embed(title=idol_name, description=group_name, color=discord.Color.red())
+                card = discord.Embed(title=f"{idol_name} `{group_name}`", description=f"Idol ID: {idol_id}", color=discord.Color.red())
                 if group_logo:
                     card.set_thumbnail(url=f"attachment://{group_logo}")
                 card.set_footer(text=f"Owner: {ctx.author.name}", icon_url=ctx.author.avatar)
@@ -419,7 +425,7 @@ class Gacha(commands.Cog):
         if group_logo is not None:
             uploaded_group_logo = discord.File(f"./cogs/gacha_images/logos/{group_logo}", filename=group_logo)
 
-        card = discord.Embed(title=f"{idol_name} `{group_name}`", description=f"ID: {idol_id}", color=discord.Color.purple())
+        card = discord.Embed(title=f"{idol_name} `{group_name}`", description=f"Idol ID: {idol_id}", color=discord.Color.purple())
         if group_logo is not None:
             card.set_thumbnail(url=f"attachment://{group_logo}")
         card.set_image(url=f"attachment://{idol_image}")
@@ -1626,11 +1632,11 @@ class Gacha(commands.Cog):
             await ctx.send("You do not have permission for this command.")
     
     ### PRIVATE FUNCTION: ADD NEW PLAYER TO DATABASE ###
-    def createplayer(self, ctx, player_id, cursor):
+    async def createplayer(self, ctx, player_id, cursor, connection):
         
         ### ADD NEW PLAYER TO PLAYERS ###
-        cursor.execute("""INSERT INTO Players (player_id, player_username)
-                            Values (:player_id, :player_username)""",
+        cursor.execute("""INSERT INTO Players (player_id, player_username, last_roll_timestamp)
+                            Values (:player_id, :player_username, DATETIME('now', 'localtime'))""",
                         {'player_id': player_id, 'player_username': ctx.author.name})
         
         ### ADD PARTY SIZE OF 10 TO PLAYER ###
@@ -1639,7 +1645,7 @@ class Gacha(commands.Cog):
                                 Values (:player_id, :position)""",
                             {'player_id': player_id, 'position': position})
         
-        cursor.connection.commit()
+        connection.commit()
 
 
 ### BUTTON MENU TO CATCH IDOLS ###
@@ -1920,7 +1926,7 @@ class TradeButtonMenu(discord.ui.View):
         user_id = interaction.user.id
 
         ### FAIL IF DIFFERENT PLAYER TRIES TO USE BUTTONS ###
-        if (user_id != self.user_id1):
+        if (user_id != self.user_id2):
             await interaction.response.send_message(content=f"<@{user_id}>, only <@{self.user_id2}> can confirm with this button!")
 
         ### CHANGE & DISABLE BUTTON IF CORRECT USER ###
@@ -1944,7 +1950,7 @@ class TradeButtonMenu(discord.ui.View):
 
     ### CANCEL BUTTON: MENU IS DEACTIVATED ###
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.grey)
-    async def releasecancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def tradecancel(self, interaction: discord.Interaction, button: discord.ui.Button):
 
         user_id = interaction.user.id
 
@@ -1966,7 +1972,8 @@ class TradeButtonMenu(discord.ui.View):
     
     ### TRADE FUNCTION ###
     async def trade(self):
-
+        
+        print("trade commencing")
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
 
@@ -1976,12 +1983,14 @@ class TradeButtonMenu(discord.ui.View):
                         WHERE idol_id = :idol_id1""",
                         {'idol_id1': self.idol_id1})
         empty_position = cursor.fetchone()[0]
+        print(f"position of {self.idol_name1}: {empty_position}")
 
         ### MOVE USER1'S REMAINING IDOLS' PARTY POSITIONS UP BY 1 ###
         cursor.execute("""SELECT party_position, idol_id FROM PartyPositions
-                        WHERE (player_id = :user_id1 AND party_position > :empty_position)""",
+                        WHERE (player_id = :user_id1 AND party_position > :empty_position AND idol_id NOT NULL)""",
                         {'user_id1': self.user_id1, 'empty_position': empty_position})
         idols_to_move = cursor.fetchall()
+        print(f"{self.user_name1}'s idols to move: {idols_to_move}")
 
         for party_position, moving_idol_id in idols_to_move:
             new_position = party_position - 1
@@ -1989,26 +1998,33 @@ class TradeButtonMenu(discord.ui.View):
                             SET idol_id = :moving_idol_id
                             WHERE (player_id = :user_id1 AND party_position = :new_position)""",
                             {'moving_idol_id': moving_idol_id, 'user_id1': self.user_id1, 'new_position': new_position})
+        print(f"{self.user_name1}'s idols have been moved")
         
         ### PUT IDOL2 IN USER1'S FINAL PARTY POSITION ###
-        final_position = idols_to_move[-1][0]
+        if len(idols_to_move) == 0:
+            final_position = empty_position
+        else:
+            final_position = idols_to_move[-1][0]
         cursor.execute("""UPDATE PartyPositions
                         SET idol_id = :idol_id2
                         WHERE (player_id = :user_id1 AND party_position = :final_position)""",
                         {'idol_id2': self.idol_id2, 'user_id1': self.user_id1, 'final_position': final_position})
+        print(f"{self.user_name1} received {self.idol_name2}")
         
         ### GET IDOL2'S PARTY POSITION BEFORE TRADING ###
         cursor.execute("""SELECT party_position
                         FROM PartyPositions
-                        WHERE idol_id = :idol_id2""",
-                        {'idol_id2': self.idol_id2})
+                        WHERE (idol_id = :idol_id2 AND player_id = :user_id2)""",
+                        {'idol_id2': self.idol_id2, 'user_id2': self.user_id2})
         empty_position = cursor.fetchone()[0]
+        print(f"position of {self.idol_name2}: {empty_position}")
 
         ### MOVE USER2'S REMAINING IDOLS' PARTY POSITIONS UP BY 1 ###
         cursor.execute("""SELECT party_position, idol_id FROM PartyPositions
-                        WHERE (player_id = :user_id2 AND party_position > :empty_position)""",
+                        WHERE (player_id = :user_id2 AND party_position > :empty_position AND idol_id NOT NULL)""",
                         {'user_id2': self.user_id2, 'empty_position': empty_position})
         idols_to_move = cursor.fetchall()
+        print(f"{self.user_name2}'s idols to move: {idols_to_move}")
 
         for party_position, moving_idol_id in idols_to_move:
             new_position = party_position - 1
@@ -2016,13 +2032,18 @@ class TradeButtonMenu(discord.ui.View):
                             SET idol_id = :moving_idol_id
                             WHERE (player_id = :user_id2 AND party_position = :new_position)""",
                             {'moving_idol_id': moving_idol_id, 'user_id2': self.user_id2, 'new_position': new_position})
+        print(f"{self.user_name2}'s idols have been moved")
         
         ### PUT IDOL1 IN USER2'S FINAL PARTY POSITION ###
-        final_position = idols_to_move[-1][0]
+        if len(idols_to_move) == 0:
+            final_position = empty_position
+        else:
+            final_position = idols_to_move[-1][0]
         cursor.execute("""UPDATE PartyPositions
                         SET idol_id = :idol_id1
                         WHERE (player_id = :user_id2 AND party_position = :final_position)""",
                         {'idol_id1': self.idol_id1, 'user_id2': self.user_id2, 'final_position': final_position})
+        print("trade done")
         
         connection.commit()
         connection.close()
