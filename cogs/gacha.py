@@ -1728,9 +1728,6 @@ class GachaButtonMenu(discord.ui.View):
 
 ### BUTTON MENU FOR !RELEASE CONFIRMATION ###
 class ReleaseButtonMenu(discord.ui.View):
-    idol_id = None
-    owner_id = None
-    idol_name = None
 
     ### MENU TIMES OUT AFTER 60 SECONDS ###
     def __init__(self, idol_id, owner_id):
@@ -1822,14 +1819,15 @@ class ReleaseButtonMenu(discord.ui.View):
 
         connection = sqlite3.connect("./cogs/idol_gacha.db")
         cursor = connection.cursor()
-        cursor.execute("""SELECT * FROM Idols
-                          WHERE idol_id = :roll_number""",
-                        {'roll_number': self.idol_id})
-        owner_id = cursor.fetchone()[3]
+        cursor.execute("""SELECT player_id
+                        FROM PartyPositions
+                        WHERE idol_id = :idol_id""",
+                        {'idol_id': self.idol_id})
+        owner = cursor.fetchone()
         connection.close()
 
         ### DISABLE MENU IF IDOL HAS ALREADY BEEN RELEASED ###
-        if (owner_id == 0):
+        if (owner is None or owner[0] != self.owner_id):
             content=f"ERROR: {self.idol_name} has already been released."
 
             ### DISABLE MENU ###
@@ -1840,9 +1838,8 @@ class ReleaseButtonMenu(discord.ui.View):
             await self.message.edit(view=self)
 
         ### CANCEL COMMAND IF CORRECT USER, THEN DISABLE MENU ###
-        elif (user_id == self.caller_id):
-
-            content=f"<@{self.caller_id}> canceled the command."
+        elif (user_id == self.owner_id):
+            content=f"<@{self.owner_id}> canceled the command."
 
             ### DISABLE MENU ###
             for button in self.children:
@@ -1853,7 +1850,7 @@ class ReleaseButtonMenu(discord.ui.View):
 
         ### FAIL IF DIFFERENT PLAYER ###
         else:
-            content=f"ERROR: Only <@{self.caller_id}> has permission to use this menu!"
+            content=f"ERROR: Only <@{self.owner_id}> has permission to use this menu!"
 
         await interaction.response.send_message(content=content)
 
