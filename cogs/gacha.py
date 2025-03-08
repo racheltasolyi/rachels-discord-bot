@@ -591,7 +591,6 @@ class Gacha(commands.Cog):
                         WHERE PartyPositions.player_id = :player_id""",
                         {'player_id': player_id})
         idols = cursor.fetchall()
-        print(idols)
 
         ### ERROR MESSAGE IF NO IDOLS ###
         if len(idols) == 0:

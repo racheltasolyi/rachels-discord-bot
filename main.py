@@ -9,9 +9,9 @@ import logging
 
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
-bot_statuses = cycle(["Status One", "Status Two", "Status Three", "Status Four"])
+bot_statuses = cycle(["Alpha Test", "!tutorial"])
 
-@tasks.loop(seconds=2)
+@tasks.loop(seconds=3)
 async def change_bot_status():
     await bot.change_presence(activity=discord.Game(next(bot_statuses)))
 

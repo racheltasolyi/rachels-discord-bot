@@ -49,7 +49,7 @@ class Leveling(commands.Cog):
             cur_level += 1
             new_level_up_xp = math.ceil(50 * cur_level ** 2 + 100 * cur_level + 50)
 
-            await message.channel.send(f"{message.author.mention} has leveled up to level {cur_level}!")
+            #await message.channel.send(f"{message.author.mention} has leveled up to level {cur_level}!")
 
             cursor.execute("""UPDATE Users SET level = :cur_level, xp = :xp, level_up_xp = :new_level_up_xp
                            WHERE guild_id = :guild_id AND user_id = :user_id""",
