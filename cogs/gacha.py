@@ -153,7 +153,7 @@ class Gacha(commands.Cog):
         if roll_logo is not None:
             uploaded_roll_logo = discord.File(f"./cogs/gacha_images/logos/{roll_logo}", filename=roll_logo)
 
-        card = discord.Embed(title=f"{roll_name} `{roll_group_name}`", description=f"Idol ID: {roll_number}", color=discord.Color.green())
+        card = discord.Embed(title=f"{roll_name}  `Idol ID: {roll_number}`", description=f"{roll_group_name}", color=discord.Color.green())
         if roll_logo is not None:
             card.set_thumbnail(url=f"attachment://{roll_logo}")
         card.set_image(url=f"attachment://{roll_image}")
@@ -240,7 +240,7 @@ class Gacha(commands.Cog):
                     uploaded_group_logo = discord.File(f"./cogs/gacha_images/logos/{group_logo}", filename=group_logo)
 
                 ### BUILD CARD ###
-                card = discord.Embed(title=f"{idol_name} `{group_name}`", description=f"Idol ID: {idol_id}", color=discord.Color.red())
+                card = discord.Embed(title=f"{idol_name}  `Idol ID: {idol_id}`", description=f"{group_name}", color=discord.Color.red())
                 if group_logo:
                     card.set_thumbnail(url=f"attachment://{group_logo}")
                 card.set_footer(text=f"Owner: {ctx.author.name}", icon_url=ctx.author.avatar)
@@ -425,7 +425,7 @@ class Gacha(commands.Cog):
         if group_logo is not None:
             uploaded_group_logo = discord.File(f"./cogs/gacha_images/logos/{group_logo}", filename=group_logo)
 
-        card = discord.Embed(title=f"{idol_name} `{group_name}`", description=f"Idol ID: {idol_id}", color=discord.Color.purple())
+        card = discord.Embed(title=f"{idol_name}  `Idol ID: {idol_id}`", description=f"{group_name}", color=discord.Color.purple())
         if group_logo is not None:
             card.set_thumbnail(url=f"attachment://{group_logo}")
         card.set_image(url=f"attachment://{idol_image}")
