@@ -112,8 +112,8 @@ class Gacha(commands.Cog):
                         {'rolls_left': rolls_left, 'roller_id': roller_id})
             print("rolls decremented")
 
-        ### FETCH THE ROLLED IDOL AND THEIR GROUP ###
-        cursor.execute("""SELECT Idols.idol_name, Idols.idol_image, GroupMembers.group_id, Groups.group_name, Groups.group_logo
+        ### FETCH THE ROLLED IDOL, THEIR GROUP, AND STATUS ###
+        cursor.execute("""SELECT Idols.idol_name, Idols.idol_image, Groups.group_name, Groups.group_logo, GroupMembers.active
                         FROM GroupMembers
                         INNER JOIN Groups ON GroupMembers.group_id = Groups.group_id
                         INNER JOIN Idols ON GroupMembers.idol_id = Idols.idol_id
@@ -126,14 +126,8 @@ class Gacha(commands.Cog):
             return
         
         ### GET IDOL'S INFORMATION ###
-        roll_name, roll_image, roll_group_id, roll_group_name, roll_logo = roll
+        roll_name, roll_image, roll_group_name, roll_logo, roll_active_status = roll
         print(roll)
-
-        ### ERROR IF GROUP INFORMATION CAN NOT BE FOUND ###
-        if roll_group_id is None:
-            await ctx.send("ERROR: The rolled idol's Group does not exist.")
-            connection.close()
-            return
 
         ### DETERMINE IF ROLL IS OWNED OR WILD ###
         cursor.execute("""SELECT PartyPositions.player_id
@@ -153,7 +147,11 @@ class Gacha(commands.Cog):
         if roll_logo is not None:
             uploaded_roll_logo = discord.File(f"./cogs/gacha_images/logos/{roll_logo}", filename=roll_logo)
 
-        card = discord.Embed(title=f"{roll_name}  `Idol ID: {roll_number}`", description=f"{roll_group_name}", color=discord.Color.green())
+        roll_group_list = f"{roll_group_name}"
+        if roll_active_status is False:
+            roll_group_list += " (former)"
+
+        card = discord.Embed(title=f"{roll_name}  `Idol ID: {roll_number}`", description=roll_group_list, color=discord.Color.green())
         if roll_logo is not None:
             card.set_thumbnail(url=f"attachment://{roll_logo}")
         card.set_image(url=f"attachment://{roll_image}")
@@ -161,12 +159,19 @@ class Gacha(commands.Cog):
 
         ### DISPLAY IDOL CARD WITH CATCH BUTTON, DEPENDING ON WHETHER IT IS CLAIMED OR NOT ###
         if roll_claimed:
-            roll_owner = await ctx.bot.fetch_user(owner_id)
-            card.add_field(
-                name=f"{roll_name}'s heart already belongs to **{roll_owner}**!",
-                value=f"{roll_name} can no longer be caught.",
+            if owner_id == 0:
+                card.add_field(
+                name=f"{roll_name} cannot be caught.",
+                value="",
                 inline=False
             )
+            else:
+                roll_owner = await ctx.bot.fetch_user(owner_id)
+                card.add_field(
+                    name=f"{roll_name}'s heart already belongs to **{roll_owner}**!",
+                    value=f"{roll_name} can no longer be caught.",
+                    inline=False
+                )
             if roll_logo is None:
                 await ctx.send(files=[uploaded_roll_image], embed=card)
             else:
