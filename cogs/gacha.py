@@ -21,7 +21,7 @@ class Gacha(commands.Cog):
         roller_id = ctx.author.id
 
         ### SPECIFY HIGHEST IDOL ID ###
-        len_idols = 244 # about 4% chance to roll a specific idol with each 10 pull
+        len_idols = 413 # about 2.4% chance to roll a specific idol with each 10 pull
 
         ### ADMIN COMMAND: ROLL SPECIFIED IDOL ###
         if (arg != None):
@@ -148,7 +148,7 @@ class Gacha(commands.Cog):
             uploaded_roll_logo = discord.File(f"./cogs/gacha_images/logos/{roll_logo}", filename=roll_logo)
 
         roll_group_list = f"{roll_group_name}"
-        if roll_active_status is False:
+        if roll_active_status == 0:
             roll_group_list += " (former)"
 
         card = discord.Embed(title=f"{roll_name}  `Idol ID: {roll_number}`", description=roll_group_list, color=discord.Color.green())
@@ -1443,7 +1443,7 @@ class Gacha(commands.Cog):
                 
                 ### IF 4 ARGS, UPDATE IDOL'S ACTIVE STATUS ###
                 if len(args) == 4:
-                    active_status = args[3]
+                    active_status = int(args[3])
                     
                 ### IF ONLY 3 ARGS, DEFAULT IDOL'S ACTIVE STATUS TO 1 (TRUE) ###
                 else:
@@ -1479,8 +1479,10 @@ class Gacha(commands.Cog):
 
                 ### DISPLAY NEW IDOL CARD WITHOUT CATCH BUTTON ###
                 new_idol_group_list = f"{new_idol_group_name}"
+                print(f"active status: {active_status}")
                 if active_status == 0:
                     new_idol_group_list += " (former)"
+                print(new_idol_group_list)
 
                 card = discord.Embed(title=f"{new_idol_name}  `Idol ID: {new_idol_id}`", description=new_idol_group_list, color=discord.Color.green())
                 if new_idol_group_logo:
