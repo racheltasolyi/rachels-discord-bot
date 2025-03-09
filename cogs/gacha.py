@@ -1410,10 +1410,10 @@ class Gacha(commands.Cog):
             
             ### IF LESS THAN 2 ARGS OR MORE THAN 4 ARGS, DISPLAY CORRECT SYNTAX ###
             if len(args) < 2:
-                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
+                await ctx.send("Insufficient parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(optional) Group ID] [(optional) Active]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1 1`")
                 return
             elif len(args) > 4:
-                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(leave blank for Soloists)Group ID]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1`")
+                await ctx.send("Too many parameters.\nPlease use the following syntax:\n`!addidol \"[Name of Idol]\" [Idol Image Filename] [(optional) Group ID] [(optional) Active]`\nExample: `!addidol \"Lee Know\" skzleeknow.jpg 1 1`")
                 return
 
             ### IF AT LEAST 2 ARGS, ADD IDOL TO DATABASE ###
@@ -1427,19 +1427,11 @@ class Gacha(commands.Cog):
                                 Values (:new_idol_name, :new_idol_image)""",
                                 {'new_idol_name': new_idol_name, 'new_idol_image': new_idol_image})
                 
-                ### IF 4 ARGS, UPDATE IDOL'S ID ###
-                if len(args) == 4:
-                    new_idol_id = args[3]
-                    cursor.execute("""UPDATE Idols SET idol_id = :new_idol_id
-                                    WHERE idol_image = :new_idol_image""",
-                                    {'new_idol_id': new_idol_id,'new_idol_image': new_idol_image})
-                
-                ### ELSE, FETCH NEW IDOL'S ID ###
-                else:
-                    cursor.execute("""SELECT idol_id FROM Idols
-                                    WHERE idol_image = :new_idol_image""",
-                                    {'new_idol_image': new_idol_image})
-                    new_idol_id = cursor.fetchone()[0]
+                ### FETCH NEW IDOL'S ID ###
+                cursor.execute("""SELECT idol_id FROM Idols
+                                WHERE idol_image = :new_idol_image""",
+                                {'new_idol_image': new_idol_image})
+                new_idol_id = cursor.fetchone()[0]
                 
                 ### IF AT LEAST 3 ARGS, ENTER IDOL'S GROUP IN GROUPMEMBERS ###
                 if len(args) > 2:
@@ -1448,13 +1440,21 @@ class Gacha(commands.Cog):
                 ### IF ONLY 2 ARGS, DEFAULT IDOL'S GROUP TO 0 (SOLOIST) ###
                 else:
                     new_idol_group_id = 0
+                
+                ### IF 4 ARGS, UPDATE IDOL'S ACTIVE STATUS ###
+                if len(args) == 4:
+                    active_status = args[3]
+                    
+                ### IF ONLY 3 ARGS, DEFAULT IDOL'S ACTIVE STATUS TO 1 (TRUE) ###
+                else:
+                    active_status = 1
 
                 cursor.execute("""INSERT INTO GroupMembers (idol_id, group_id, active)
-                                Values (:new_idol_id, :new_idol_group_id, TRUE)""",
-                                {'new_idol_id': new_idol_id,'new_idol_group_id': new_idol_group_id})
+                                Values (:new_idol_id, :new_idol_group_id, :active_status)""",
+                                {'new_idol_id': new_idol_id, 'new_idol_group_id': new_idol_group_id, 'active_status': active_status})
 
                 ### BUILD NEW IDOL CARD ###
-                cursor.execute("""SELECT * FROM Groups
+                cursor.execute("""SELECT group_name, group_logo FROM Groups
                                 WHERE group_id = :new_idol_group_id""",
                                 {'new_idol_group_id': new_idol_group_id})
                 new_idol_group = cursor.fetchone()
@@ -1463,8 +1463,7 @@ class Gacha(commands.Cog):
                     connection.close()
                     return
                 
-                new_idol_group_name = new_idol_group[1]
-                new_idol_group_logo = new_idol_group[2]
+                new_idol_group_name, new_idol_group_logo = new_idol_group
 
                 if not os.path.exists(f"./cogs/gacha_images/idols/{new_idol_image}"):
                     print(f"ERROR: Idol image file not found: ./cogs/gacha_images/idols/{new_idol_image}")
@@ -1479,7 +1478,11 @@ class Gacha(commands.Cog):
                     uploaded_new_idol_group_logo = discord.File(f"./cogs/gacha_images/logos/{new_idol_group_logo}", filename=new_idol_group_logo)
 
                 ### DISPLAY NEW IDOL CARD WITHOUT CATCH BUTTON ###
-                card = discord.Embed(title=new_idol_name, description=new_idol_group_name, color=discord.Color.green())
+                new_idol_group_list = f"{new_idol_group_name}"
+                if active_status == 0:
+                    new_idol_group_list += " (former)"
+
+                card = discord.Embed(title=f"{new_idol_name}  `Idol ID: {new_idol_id}`", description=new_idol_group_list, color=discord.Color.green())
                 if new_idol_group_logo:
                     card.set_thumbnail(url=f"attachment://{new_idol_group_logo}")
                 card.set_footer(text=f"New idol added by {ctx.author.name}", icon_url=ctx.author.avatar)
